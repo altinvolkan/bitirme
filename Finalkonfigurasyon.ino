@@ -1,9 +1,11 @@
-#include <SPI.h>
-#include <MFRC522.h>
+#include <Wire.h>
+#include <Adafruit_PN532.h>
 #include <EEPROM.h>
+#include <NewPing.h>
 
-#define RST_PIN         9
-#define SS_PIN          10
+// Define pins for PN532
+#define SDA_PIN         20
+#define SCL_PIN         21
 #define RELAY_PIN       7
 #define TRIG_PIN        8
 #define ECHO_PIN        11
@@ -18,17 +20,21 @@
 #define WAIT_TIME       15000
 #define EEPROM_SIZE     4096
 #define EEPROM_START    0
-#define UID_SIZE        4
+#define UID_SIZE        7 // PN532 UID size can be up to 7 bytes
 
-MFRC522 mfrc522(SS_PIN, RST_PIN);
+Adafruit_PN532 nfc(SDA_PIN, SCL_PIN);
+
 bool adminMode = false;
+byte masterKey[UID_SIZE] = {0xA3, 0x17, 0x1F, 0xF8, 0x00, 0x00, 0x00};
+byte cardUID[UID_SIZE];
+uint8_t uidLength;
 
-byte masterKey[UID_SIZE] = {0xA3, 0x17, 0x1F, 0xF8};
+NewPing sonar(TRIG_PIN, ECHO_PIN, 200);
 
 void setup() {
   Serial.begin(9600);
-  SPI.begin();
-  mfrc522.PCD_Init();
+  nfc.begin();
+  nfc.SAMConfig();
 
   pinMode(RELAY_PIN, OUTPUT);
   pinMode(TRIG_PIN, OUTPUT);
@@ -41,7 +47,12 @@ void setup() {
   pinMode(LED_PIN_3, OUTPUT);
   pinMode(LED_PIN_4, OUTPUT);
 
-  digitalWrite(RELAY_PIN, HIGH);  // Make sure relay is off at the start
+  digitalWrite(RELAY_PIN, HIGH);
+
+  // Eski kartın UID'sini EEPROM'a kaydediyoruz
+  byte oldCardUID[UID_SIZE] = {0xA3, 0x17, 0x1F, 0xF8, 0x00, 0x00, 0x00};
+  registerNewCard(oldCardUID);
+
   Serial.println("Admin card ID: A3:17:1F:F8");
 }
 
@@ -76,7 +87,6 @@ void loop() {
   if (digitalRead(BUTTON_PIN_2) == LOW) {
     openDoorFor2Seconds();
     while (digitalRead(BUTTON_PIN_2) == LOW);
-    resetRFIDModule();
   }
 
   if (adminMode) {
@@ -85,10 +95,9 @@ void loop() {
     checkForAdminCard();
   }
 
-  if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
-    byte cardUID[UID_SIZE];
-    for (byte i = 0; i < mfrc522.uid.size; i++) {
-      cardUID[i] = mfrc522.uid.uidByte[i];
+  if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, cardUID, &uidLength)) {
+    for (byte i = 0; i < uidLength; i++) {
+      cardUID[i] = nfc.uid.uidByte[i];
     }
 
     if (isCardRegistered(cardUID)) {
@@ -106,12 +115,11 @@ void loop() {
 }
 
 void checkForAdminCard() {
-  if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
-    if (compareUID(mfrc522.uid.uidByte, masterKey)) {
+  if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, cardUID, &uidLength)) {
+    if (compareUID(cardUID, masterKey)) {
       Serial.println("Admin card authenticated. Entering admin mode.");
       adminMode = true;
       delay(3000); // Wait for 3 seconds
-      resetRFIDModule();
     }
   }
 }
@@ -120,10 +128,10 @@ void checkForNewCard() {
   Serial.println("Yeni kartı okut");
   unsigned long startTime = millis();
   while (millis() - startTime < 10000) { // 10 seconds window to read new card
-    if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
+    if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, cardUID, &uidLength)) {
       byte newCardUID[UID_SIZE];
-      for (byte i = 0; i < mfrc522.uid.size; i++) {
-        newCardUID[i] = mfrc522.uid.uidByte[i];
+      for (byte i = 0; i < uidLength; i++) {
+        newCardUID[i] = nfc.uid.uidByte[i];
       }
 
       if (!isCardRegistered(newCardUID)) {
@@ -134,13 +142,13 @@ void checkForNewCard() {
       }
       adminMode = false; // Exit admin mode after handling a new card
       delay(2000); // Display message for 2 seconds
-      resetRFIDModule();
+      resetRFIDModule(); // Reset the RFID module
       return;
     }
   }
   Serial.println("Admin mode timeout. Exiting admin mode.");
   adminMode = false; // Exit admin mode after timeout
-  resetRFIDModule();
+  resetRFIDModule(); // Reset the RFID module
 }
 
 bool isCardRegistered(byte cardUID[]) {
@@ -207,12 +215,14 @@ void openDoor() {
   digitalWrite(RELAY_PIN, LOW); // Activate relay (assuming LOW triggers the relay)
   delay(RELAY_TIME);
   digitalWrite(RELAY_PIN, HIGH); // Deactivate relay
+  resetRFIDModule();
 }
 
 void openDoorFor2Seconds() {
   digitalWrite(RELAY_PIN, LOW); // Activate relay (assuming LOW triggers the relay)
   delay(2000); // Keep door open for 2 seconds
   digitalWrite(RELAY_PIN, HIGH); // Deactivate relay
+  resetRFIDModule();
 }
 
 void clearEEPROM() {
@@ -236,5 +246,6 @@ long getDistance() {
 }
 
 void resetRFIDModule() {
-  mfrc522.PCD_Init(); // Reset the RFID module
+  nfc.begin();
+  nfc.SAMConfig();
 }
