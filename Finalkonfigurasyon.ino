@@ -14,7 +14,6 @@
 #define LED_PIN_2       A2
 #define LED_PIN_3       A3
 #define LED_PIN_4       A4
-#define MAX_PEOPLE      2
 #define RELAY_TIME      3000
 #define WAIT_TIME       15000
 #define EEPROM_SIZE     4096
@@ -42,7 +41,7 @@ void setup() {
   pinMode(LED_PIN_3, OUTPUT);
   pinMode(LED_PIN_4, OUTPUT);
 
-  digitalWrite(RELAY_PIN, HIGH);
+  digitalWrite(RELAY_PIN, HIGH);  // Make sure relay is off at the start
   Serial.println("Admin card ID: A3:17:1F:F8");
 }
 
@@ -52,12 +51,11 @@ void loop() {
 
   if (adminMode) {
     digitalWrite(LED_PIN_4, millis() % 1000 < 500 ? HIGH : LOW);
-     digitalWrite(LED_PIN_1, LOW);
+    digitalWrite(LED_PIN_1, LOW);
     digitalWrite(LED_PIN_2, LOW);
     digitalWrite(LED_PIN_3, LOW);
   } else {
     digitalWrite(LED_PIN_4, LOW);
-   
   }
 
   digitalWrite(LED_PIN_1, areaFull ? HIGH : LOW);
@@ -70,8 +68,6 @@ void loop() {
     digitalWrite(LED_PIN_3, (!doorClosed || !areaFull) ? HIGH : LOW);
   }
 
-  
-
   if (digitalRead(BUTTON_PIN_3) == LOW) {
     clearEEPROM();
     while (digitalRead(BUTTON_PIN_3) == LOW);
@@ -80,6 +76,7 @@ void loop() {
   if (digitalRead(BUTTON_PIN_2) == LOW) {
     openDoorFor2Seconds();
     while (digitalRead(BUTTON_PIN_2) == LOW);
+    resetRFIDModule();
   }
 
   if (adminMode) {
@@ -104,6 +101,7 @@ void loop() {
     } else {
       Serial.println("Card not registered. Door cannot be opened.");
     }
+    resetRFIDModule();
   }
 }
 
@@ -113,6 +111,7 @@ void checkForAdminCard() {
       Serial.println("Admin card authenticated. Entering admin mode.");
       adminMode = true;
       delay(3000); // Wait for 3 seconds
+      resetRFIDModule();
     }
   }
 }
@@ -135,11 +134,13 @@ void checkForNewCard() {
       }
       adminMode = false; // Exit admin mode after handling a new card
       delay(2000); // Display message for 2 seconds
+      resetRFIDModule();
       return;
     }
   }
   Serial.println("Admin mode timeout. Exiting admin mode.");
   adminMode = false; // Exit admin mode after timeout
+  resetRFIDModule();
 }
 
 bool isCardRegistered(byte cardUID[]) {
@@ -184,7 +185,6 @@ void registerNewCard(byte cardUID[]) {
   }
   Serial.println("No empty slots available to register new card.");
 }
-
 
 bool compareUID(byte* uid1, byte* uid2) {
   for (byte i = 0; i < UID_SIZE; i++) {
@@ -233,4 +233,8 @@ long getDistance() {
   long distance = duration * 0.034 / 2;
 
   return distance;
+}
+
+void resetRFIDModule() {
+  mfrc522.PCD_Init(); // Reset the RFID module
 }
