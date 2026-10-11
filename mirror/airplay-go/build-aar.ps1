@@ -1,12 +1,12 @@
-# build-aar.sh'nin PowerShell karşılığı (Windows).
-# Önkoşul: setup.ps1 çalışmış; ANDROID_HOME ve ANDROID_NDK_HOME ayarlı.
+# build-aar.sh'nin PowerShell karsiligi (Windows).
+# Onkosul: setup.ps1 calismis; ANDROID_HOME ve ANDROID_NDK_HOME ayarli.
 #   powershell -ExecutionPolicy Bypass -File .\build-aar.ps1
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 function Run($exe) {
     & $exe @args
-    if ($LASTEXITCODE -ne 0) { throw "$exe $args başarısız (kod $LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) { throw "$exe $args basarisiz (kod $LASTEXITCODE)" }
 }
 
 if (-not $env:ANDROID_NDK_HOME) { throw 'ANDROID_NDK_HOME ayarli degil (ornek: $env:ANDROID_HOME\ndk\<surum>)' }

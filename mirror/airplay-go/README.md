@@ -3,21 +3,21 @@
 Apple TV'nin kendi AirPlay alıcısına, tvOS'a uygulama kurmadan yansıtır.
 Protokol katmanı (FairPlay SAP, SRP-6a PIN eşleştirme, RTSP, ChaCha20 akış şifrelemesi)
 [omarroth/doubletake](https://github.com/omarroth/doubletake) projesinden gelir (LGPL-3.0).
-Bu klasördeki `overlay/` bizim yazdığımız kısımdır:
+Bu klasördeki `_overlay/` bizim yazdığımız kısımdır:
 
 | Dosya | Görevi |
 |---|---|
-| `overlay/internal/airplay/external.go` | MediaCodec çıktısını doubletake'in `StreamFrames`'ine besleyen kaynak (GStreamer yerine) |
-| `overlay/internal/airplay/device_txt.go` | NsdManager TXT kayıtlarından `AirPlayDevice` kurar |
-| `overlay/sender/sender.go` | gomobile arayüzü: bağlan, eşleş (PIN), yayını kur, kare it |
-| `overlay/cmd/h264send` | Android'e geçmeden Linux'ta kendi Apple TV'nize deneme aracı |
+| `_overlay/internal/airplay/external.go` | MediaCodec çıktısını doubletake'in `StreamFrames`'ine besleyen kaynak (GStreamer yerine) |
+| `_overlay/internal/airplay/device_txt.go` | NsdManager TXT kayıtlarından `AirPlayDevice` kurar |
+| `_overlay/sender/sender.go` | gomobile arayüzü: bağlan, eşleş (PIN), yayını kur, kare it |
+| `_overlay/cmd/h264send` | Android'e geçmeden Linux'ta kendi Apple TV'nize deneme aracı |
 
 Upstream kodu repoya işlenmez; `setup.sh` sabit bir commit'ten çekip birleştirir.
 
 ## Kurulum
 ```
 cd mirror/airplay-go
-./setup.sh          # upstream'i çeker, overlay'i uygular, go vet + go build
+./setup.sh          # upstream'i çeker, _overlay dosyalarini uygular, go vet + go build
 ```
 
 ## 1) Önce Linux'ta dene (Android olmadan)
