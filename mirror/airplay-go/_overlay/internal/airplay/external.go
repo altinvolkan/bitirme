@@ -7,6 +7,7 @@ package airplay
 
 import (
 	"io"
+	"log"
 	"sync"
 	"time"
 )
@@ -135,14 +136,25 @@ const (
 // stereo) AirPlay ses akisina besler. PTS, ornek sayaci ile duvar saati arasinda
 // yavasca duzeltilen bir capa uzerinden hesaplanir.
 type ExternalAudioSource struct {
-	mu     sync.Mutex
-	cond   *sync.Cond
-	buf    []byte
-	pushed uint64 // atilanlar dahil bugune dek itilen ornek sayisi
-	anchor time.Time
-	have   bool
-	closed bool
+	mu        sync.Mutex
+	cond      *sync.Cond
+	buf       []byte
+	pushed    uint64 // atilanlar dahil bugune dek itilen ornek sayisi
+	anchor    time.Time
+	firstPush time.Time
+	have      bool
+	closed    bool
+	reanchors int
+	overflows int
 }
+
+const (
+	// Ilk saniyelerde en erken (jitter'siz) capa secilir, sonra sabit kalir; boylece
+	// alicinin gordugu RTP<->zaman eslemesi dalgalanmaz.
+	audioAnchorCalibration = 2 * time.Second
+	// Kaynak durup devam ederse (veya cok yavas saat kaymasi birikirse) capa bir kez atlar.
+	audioReanchorThreshold = 150 * time.Millisecond
+)
 
 func NewExternalAudioSource() *ExternalAudioSource {
 	a := &ExternalAudioSource{}
@@ -171,16 +183,24 @@ func (a *ExternalAudioSource) Push(pcm []byte) {
 
 	candidate := now.Add(-samplesToDuration(a.pushed))
 	switch {
-	case !a.have || candidate.Before(a.anchor):
-		a.anchor, a.have = candidate, true
-	default:
-		// Gec gelen parcalar adayi buyutur; saat kaymasini izlemek icin cok yavas yaklas.
-		a.anchor = a.anchor.Add(candidate.Sub(a.anchor) / 1000)
+	case !a.have:
+		a.anchor, a.have, a.firstPush = candidate, true, now
+	case candidate.Before(a.anchor):
+		a.anchor = candidate // daha erken = gercege daha yakin
+	case now.Sub(a.firstPush) > audioAnchorCalibration && candidate.Sub(a.anchor) > audioReanchorThreshold:
+		a.reanchors++
+		log.Printf("[AUDIO-EXT] kaynak %v gecikti, zaman capasi yenilendi (#%d)",
+			candidate.Sub(a.anchor).Round(time.Millisecond), a.reanchors)
+		a.anchor = candidate
 	}
 
 	if len(a.buf) > externalAudioMaxBytes {
 		drop := (len(a.buf) - externalAudioMaxBytes) / 4 * 4
 		a.buf = append(a.buf[:0], a.buf[drop:]...)
+		a.overflows++
+		if a.overflows <= 5 || a.overflows%100 == 0 {
+			log.Printf("[AUDIO-EXT] tampon tasti, %d byte atildi (#%d); tuketici yetismiyor", drop, a.overflows)
+		}
 	}
 	a.cond.Broadcast()
 }

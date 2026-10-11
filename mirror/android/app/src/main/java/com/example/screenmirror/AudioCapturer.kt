@@ -6,11 +6,14 @@ import android.media.AudioFormat
 import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.projection.MediaProjection
+import android.os.Process
+import android.os.SystemClock
+import android.util.Log
 import kotlin.concurrent.thread
 
 /**
  * Sistem sesini (diğer uygulamaların çaldığı ses) AudioPlaybackCapture ile yakalar:
- * S16LE, 44100 Hz, stereo, 20 ms'lik parçalar halinde [FrameSink.sendAudio]'ya verir.
+ * S16LE, 44100 Hz, stereo, 10 ms'lik parçalar halinde [FrameSink.sendAudio]'ya verir.
  *
  * RECORD_AUDIO izni gerekir. Ses yakalamaya izin vermeyen uygulamalar (bazı DRM'li
  * servisler) sessiz kalır. Telefonun hoparlöründen çalma ayrıca devam eder.
@@ -41,7 +44,8 @@ class AudioCapturer(
             AudioRecord.Builder()
                 .setAudioFormat(format)
                 .setAudioPlaybackCaptureConfig(config)
-                .setBufferSizeInBytes(maxOf(minBuf, CHUNK_BYTES * 4))
+                // 500 ms: telefon meşgulken okuma gecikse bile örnek kaybolmasın (çıtırtı nedeni)
+                .setBufferSizeInBytes(maxOf(minBuf, SAMPLE_RATE * 4 / 2))
                 .build()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -55,9 +59,18 @@ class AudioCapturer(
         running = true
         rec.startRecording()
         thread(name = "audio-capture", isDaemon = true) {
+            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             val buf = ByteArray(CHUNK_BYTES)
+            var last = SystemClock.elapsedRealtime()
+            var gaps = 0
             while (running) {
                 val n = rec.read(buf, 0, buf.size)
+                val now = SystemClock.elapsedRealtime()
+                // 10 ms'lik okuma 40 ms'den uzun sürdüyse ses akışı aksamış demektir
+                if (now - last > GAP_WARN_MS && ++gaps <= 20) {
+                    Log.w(TAG, "okuma boşluğu ${now - last} ms (#$gaps)")
+                }
+                last = now
                 if (n > 0) sink.sendAudio(buf, n) else if (n < 0) break
             }
         }
@@ -76,6 +89,8 @@ class AudioCapturer(
 
     companion object {
         const val SAMPLE_RATE = 44100
-        private const val CHUNK_BYTES = SAMPLE_RATE / 50 * 4 // 20 ms, stereo S16
+        private const val CHUNK_BYTES = SAMPLE_RATE / 100 * 4 // 10 ms, stereo S16
+        private const val GAP_WARN_MS = 40L
+        private const val TAG = "ScreenMirrorAudio"
     }
 }

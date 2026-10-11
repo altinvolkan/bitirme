@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjection
+import android.net.wifi.WifiManager
 import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.IBinder
@@ -35,6 +36,7 @@ class MirrorService : Service() {
     private var sink: FrameSink? = null
     private var backend: MirrorBackend? = null
     private var audio: AudioCapturer? = null
+    private var wifiLock: WifiManager.WifiLock? = null
 
     /** AirPlay modunda alıcının tuvali; 0 ise UDP modu. */
     private var canvasW = 0
@@ -76,6 +78,11 @@ class MirrorService : Service() {
                 }
             }, main)
             projection = proj
+
+            // Wi-Fi güç tasarrufu paketleri toplu/geç gönderip ses-görüntü takılmasına yol açar
+            wifiLock = getSystemService(WifiManager::class.java)
+                .createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "screenmirror")
+                .also { it.setReferenceCounted(false); it.acquire() }
 
             val ok = when (intent.getStringExtra(EXTRA_MODE)) {
                 MODE_AIRPLAY -> startAirPlay(proj, intent)
@@ -243,6 +250,8 @@ class MirrorService : Service() {
         getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
         audio?.stop()
         audio = null
+        wifiLock?.let { if (it.isHeld) it.release() }
+        wifiLock = null
         encoder?.stop()
         backend?.stop()
         sink?.close()
