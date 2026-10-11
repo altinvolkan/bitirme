@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.text.InputType
@@ -60,6 +61,13 @@ class MainActivity : ComponentActivity() {
 
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    /** Ses yakalama izni; reddedilse bile görüntü sessiz olarak devam eder. */
+    private val audioPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) status.text = "Ses izni verilmedi; görüntü sessiz yansıtılacak"
+            requestCapture()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -169,7 +177,11 @@ class MainActivity : ComponentActivity() {
             return
         }
         pendingMode = MirrorService.MODE_AIRPLAY
-        requestCapture()
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            requestCapture()
+        } else {
+            audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     private fun requestCapture() {
@@ -189,6 +201,7 @@ class MainActivity : ComponentActivity() {
             "pairing" -> "AirPlay: eşleştiriliyor…"
             "setup" -> "AirPlay: yayın kuruluyor…"
             "streaming" -> "AirPlay: yansıtılıyor → $detail"
+            "audio" -> "AirPlay: yansıtılıyor (ses: $detail)"
             "error" -> "AirPlay hatası: $detail"
             else -> "Durduruldu"
         }

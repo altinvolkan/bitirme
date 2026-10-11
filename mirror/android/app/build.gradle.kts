@@ -15,8 +15,8 @@ android {
         applicationId = "com.example.screenmirror"
         minSdk = 30
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
     }
 
     compileOptions {

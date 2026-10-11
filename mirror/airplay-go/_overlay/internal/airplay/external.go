@@ -26,6 +26,15 @@ type ExternalVideoSource struct {
 	dropping   bool // keyframe gelene kadar kare at
 	startAsked bool
 	onNeedKey  func()
+	ptsOffset  time.Duration // encode gecikmesi payi; ses ile senkron icin
+}
+
+// SetPTSOffset, karenin yakalanmasi ile Push edilmesi arasindaki tahmini encode
+// gecikmesini ayarlar. Ses videodan once duyuluyorsa artirin.
+func (s *ExternalVideoSource) SetPTSOffset(d time.Duration) {
+	s.mu.Lock()
+	s.ptsOffset = d
+	s.mu.Unlock()
 }
 
 // NewExternalVideoSource oluşturur. onNeedKeyframe, akış başlarken ve kuyruk
@@ -36,6 +45,7 @@ func NewExternalVideoSource(onNeedKeyframe func()) *ExternalVideoSource {
 		done:      make(chan struct{}),
 		dropping:  true, // ilk keyframe'e kadar bekle
 		onNeedKey: onNeedKeyframe,
+		ptsOffset: 30 * time.Millisecond,
 	}
 }
 
@@ -58,7 +68,7 @@ func (s *ExternalVideoSource) Push(annexB []byte, keyframe bool) {
 		return
 	}
 	s.dropping = false
-	unit := VideoAccessUnit{AnnexB: append([]byte(nil), annexB...), PTS: time.Now()}
+	unit := VideoAccessUnit{AnnexB: append([]byte(nil), annexB...), PTS: time.Now().Add(-s.ptsOffset)}
 	select {
 	case s.ch <- unit:
 		s.mu.Unlock()
@@ -113,5 +123,106 @@ func (s *ExternalVideoSource) Capture() *ScreenCapture {
 		frames:     s,
 		streamOnly: true,
 		cancel:     s.Close,
+	}
+}
+
+const (
+	externalAudioRate     = 44100
+	externalAudioMaxBytes = externalAudioRate * 4 / 2 // 500 ms; tasarsa en eskiyi at
+)
+
+// ExternalAudioSource, Android AudioPlaybackCapture'dan gelen PCM'i (S16LE, 44.1 kHz,
+// stereo) AirPlay ses akisina besler. PTS, ornek sayaci ile duvar saati arasinda
+// yavasca duzeltilen bir capa uzerinden hesaplanir.
+type ExternalAudioSource struct {
+	mu     sync.Mutex
+	cond   *sync.Cond
+	buf    []byte
+	pushed uint64 // atilanlar dahil bugune dek itilen ornek sayisi
+	anchor time.Time
+	have   bool
+	closed bool
+}
+
+func NewExternalAudioSource() *ExternalAudioSource {
+	a := &ExternalAudioSource{}
+	a.cond = sync.NewCond(&a.mu)
+	return a
+}
+
+func samplesToDuration(n uint64) time.Duration {
+	return time.Duration(n) * time.Second / externalAudioRate
+}
+
+// Push bir PCM parcasi ekler (4 byte'in kati degilse kuyruk atilir).
+func (a *ExternalAudioSource) Push(pcm []byte) {
+	n := len(pcm) / 4 * 4
+	if n == 0 {
+		return
+	}
+	now := time.Now()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.closed {
+		return
+	}
+	a.buf = append(a.buf, pcm[:n]...)
+	a.pushed += uint64(n / 4)
+
+	candidate := now.Add(-samplesToDuration(a.pushed))
+	switch {
+	case !a.have || candidate.Before(a.anchor):
+		a.anchor, a.have = candidate, true
+	default:
+		// Gec gelen parcalar adayi buyutur; saat kaymasini izlemek icin cok yavas yaklas.
+		a.anchor = a.anchor.Add(candidate.Sub(a.anchor) / 1000)
+	}
+
+	if len(a.buf) > externalAudioMaxBytes {
+		drop := (len(a.buf) - externalAudioMaxBytes) / 4 * 4
+		a.buf = append(a.buf[:0], a.buf[drop:]...)
+	}
+	a.cond.Broadcast()
+}
+
+// ReadPCMFrame audioPCMFrameReader arayuzunu saglar: dst'yi doldurana dek bekler.
+func (a *ExternalAudioSource) ReadPCMFrame(dst []byte) (time.Time, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for len(a.buf) < len(dst) && !a.closed {
+		a.cond.Wait()
+	}
+	if len(a.buf) < len(dst) {
+		return time.Time{}, io.EOF
+	}
+	start := a.pushed - uint64(len(a.buf)/4)
+	copy(dst, a.buf[:len(dst)])
+	a.buf = append(a.buf[:0], a.buf[len(dst):]...)
+	return a.anchor.Add(samplesToDuration(start)), nil
+}
+
+// Close bekleyen okuyucuyu io.EOF ile serbest birakir.
+func (a *ExternalAudioSource) Close() {
+	a.mu.Lock()
+	a.closed = true
+	a.mu.Unlock()
+	a.cond.Broadcast()
+}
+
+// Capture, kaynagi StreamAudio'nun bekledigi AudioCapture olarak sarar.
+// codec, oturumda anlasilan kodek olmalidir (session.AudioCodec()).
+func (a *ExternalAudioSource) Capture(codec AudioCodec) *AudioCapture {
+	waitCh := make(chan struct{})
+	var once sync.Once
+	return &AudioCapture{
+		pcmFrames: a,
+		codec:     codec,
+		waitCh:    waitCh,
+		cancel: func() {
+			once.Do(func() {
+				close(waitCh)
+				a.Close()
+			})
+		},
 	}
 }

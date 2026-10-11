@@ -29,9 +29,17 @@ class AirPlayBackend(
         target.name, target.ip, target.port.toLong(), target.txt, savedCreds, goListener,
     )
 
+    @Volatile private var audioEnabled = true
+
     override val sink: FrameSink = object : FrameSink {
         override fun sendFrame(data: ByteArray, size: Int, keyframe: Boolean) {
             session.pushFrame(if (size == data.size) data else data.copyOf(size), keyframe)
+        }
+
+        override val wantsAudio: Boolean get() = audioEnabled
+
+        override fun sendAudio(pcm: ByteArray, size: Int) {
+            session.pushAudio(if (size == pcm.size) pcm else pcm.copyOf(size))
         }
 
         override fun close() = session.stop()
@@ -47,6 +55,11 @@ class AirPlayBackend(
     }
 
     override fun submitPin(pin: String) = session.submitPin(pin)
+
+    override fun setAudioEnabled(on: Boolean) {
+        audioEnabled = on
+        session.setAudioEnabled(on)
+    }
 
     override fun stop() = session.stop()
 }

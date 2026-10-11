@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"screenmirror/airplay/internal/airplay"
 )
@@ -43,6 +44,8 @@ type Session struct {
 	saved    string
 	listener Listener
 	source   *airplay.ExternalVideoSource
+	audioSrc *airplay.ExternalAudioSource
+	audio    bool
 
 	pinCh chan string
 
@@ -61,6 +64,8 @@ func NewSession(name, ip string, port int, txtLines string, savedCreds string, l
 		saved:    savedCreds,
 		listener: l,
 		source:   airplay.NewExternalVideoSource(l.OnNeedKeyframe),
+		audioSrc: airplay.NewExternalAudioSource(),
+		audio:    true,
 		pinCh:    make(chan string, 1),
 		ctx:      ctx,
 		cancel:   cancel,
@@ -81,10 +86,23 @@ func (s *Session) PushFrame(annexB []byte, keyframe bool) {
 	s.source.Push(annexB, keyframe)
 }
 
+// SetAudioEnabled sesi acar/kapatir (Run'dan once cagrilmali). Varsayilan: acik.
+func (s *Session) SetAudioEnabled(on bool) { s.audio = on }
+
+// PushAudio sistem sesinden PCM verir: S16LE, 44100 Hz, stereo (interleaved).
+func (s *Session) PushAudio(pcm []byte) { s.audioSrc.Push(pcm) }
+
+// SetVideoLatencyMs, kare yakalama ile PushFrame arasindaki tahmini encode gecikmesidir
+// (varsayilan 30). Ses goruntuden once duyuluyorsa artirin.
+func (s *Session) SetVideoLatencyMs(ms int) {
+	s.source.SetPTSOffset(time.Duration(ms) * time.Millisecond)
+}
+
 // Stop oturumu sonlandırır; Run döner.
 func (s *Session) Stop() {
 	s.cancel()
 	s.source.Close()
+	s.audioSrc.Close()
 }
 
 // Run bağlanır, eşleşir ve akış bitene kadar bloklar. Ayrı bir thread'de çağırın.
@@ -99,6 +117,7 @@ func (s *Session) Run() (err error) {
 		}
 		s.listener.OnStatus(state, detail)
 		s.source.Close()
+		s.audioSrc.Close()
 	}()
 
 	ctx := s.ctx
@@ -129,7 +148,7 @@ func (s *Session) Run() (err error) {
 		FPS:        30,
 		Bitrate:    8000,
 		VideoCodec: airplay.VideoCodecH264,
-		NoAudio:    true,
+		NoAudio:    !s.audio,
 	}
 	session, err := client.SetupMirrorWithVideoPreparation(ctx, cfg, func(w, h int) error {
 		s.listener.OnVideoCanvas(w, h)
@@ -144,6 +163,16 @@ func (s *Session) Run() (err error) {
 		<-ctx.Done()
 		session.Close()
 	}()
+
+	if s.audio && session.HasAudio() {
+		capture := s.audioSrc.Capture(session.AudioCodec())
+		defer capture.Stop()
+		go func() {
+			if err := session.StreamAudio(ctx, capture, session.AudioStream()); err != nil && ctx.Err() == nil {
+				s.listener.OnStatus("audio", err.Error())
+			}
+		}()
+	}
 
 	s.listener.OnStatus("streaming", info.Name)
 	if err := session.StreamFrames(ctx, s.source.Capture(), 0); err != nil && ctx.Err() == nil {

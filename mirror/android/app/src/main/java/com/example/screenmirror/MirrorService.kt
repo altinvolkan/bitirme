@@ -7,13 +7,16 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.view.WindowManager
+import android.view.Display
+import android.view.Surface
 import androidx.core.content.IntentCompat
 import kotlin.concurrent.thread
 import kotlin.math.max
@@ -31,6 +34,19 @@ class MirrorService : Service() {
     private var encoder: ScreenEncoder? = null
     private var sink: FrameSink? = null
     private var backend: MirrorBackend? = null
+    private var audio: AudioCapturer? = null
+
+    /** AirPlay modunda alıcının tuvali; 0 ise UDP modu. */
+    private var canvasW = 0
+    private var canvasH = 0
+
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) {}
+        override fun onDisplayRemoved(displayId: Int) {}
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId == Display.DEFAULT_DISPLAY) main.post { applyScreenSize() }
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -83,7 +99,7 @@ class MirrorService : Service() {
     private fun startUdp(proj: MediaProjection, intent: Intent): Boolean {
         val host = intent.getStringExtra(EXTRA_HOST) ?: return false
         val port = intent.getIntExtra(EXTRA_PORT, Protocol.DEFAULT_PORT)
-        val (w, h) = scaledSize(MAX_SIDE, MAX_SIDE)
+        val (w, h) = targetSize()
 
         val enc = arrayOfNulls<ScreenEncoder>(1)
         val snd = UdpVideoSender(host, port) { enc[0]?.requestKeyFrame() }
@@ -91,6 +107,7 @@ class MirrorService : Service() {
         enc[0] = ScreenEncoder(proj, w, h, resources.displayMetrics.densityDpi, snd)
         encoder = enc[0]
         enc[0]!!.start()
+        watchRotation()
         return true
     }
 
@@ -128,37 +145,74 @@ class MirrorService : Service() {
         }
         backend = b
         sink = b.sink
+        b.setAudioEnabled(hasAudioPermission())
         thread(name = "airplay-session", isDaemon = true) { b.run() }
         return true
     }
 
-    private fun startAirPlayEncoder(proj: MediaProjection, canvasW: Int, canvasH: Int) {
+    private fun startAirPlayEncoder(proj: MediaProjection, w: Int, h: Int) {
         if (encoder != null || backend == null) return
-        val screen = screenSize()
-        // Telefon ekranını alıcının tuvaline en-boy oranını koruyarak sığdır
-        val scale = min(canvasW.toFloat() / screen.first, canvasH.toFloat() / screen.second)
-        val (w, h) = alignedSize((screen.first * scale).toInt(), (screen.second * scale).toInt())
+        canvasW = w
+        canvasH = h
+        val (ew, eh) = targetSize()
         encoder = ScreenEncoder(
-            proj, w, h, resources.displayMetrics.densityDpi, sink!!,
+            proj, ew, eh, resources.displayMetrics.densityDpi, sink!!,
             bitrate = AIRPLAY_BITRATE, fps = AIRPLAY_FPS,
         ).also { it.start() }
+        watchRotation()
+
+        val s = sink!!
+        if (s.wantsAudio) {
+            val capturer = AudioCapturer(proj, s)
+            if (capturer.start()) {
+                audio = capturer
+            } else {
+                MirrorEvents.status("audio", "Ses yakalanamadı; görüntü sessiz devam ediyor")
+            }
+        }
     }
 
     // --- Ortak ---
 
+    /** Ekranın o anki (döndürmeye göre) piksel boyutu. */
     private fun screenSize(): Pair<Int, Int> {
-        val bounds = (getSystemService(Context.WINDOW_SERVICE) as WindowManager).maximumWindowMetrics.bounds
-        return bounds.width() to bounds.height()
+        val display = getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
+        var w = display.mode.physicalWidth
+        var h = display.mode.physicalHeight
+        if (display.rotation == Surface.ROTATION_90 || display.rotation == Surface.ROTATION_270) {
+            w = h.also { h = w }
+        }
+        return w to h
     }
 
-    private fun scaledSize(maxW: Int, maxH: Int): Pair<Int, Int> {
+    /** Encoder için hedef boyut: AirPlay'de alıcı tuvaline, UDP'de MAX_SIDE'a sığdır. */
+    private fun targetSize(): Pair<Int, Int> {
         val (sw, sh) = screenSize()
-        val scale = min(1f, min(maxW.toFloat() / sw, maxH.toFloat() / sh))
+        val maxW = if (canvasW > 0) canvasW else MAX_SIDE
+        val maxH = if (canvasH > 0) canvasH else MAX_SIDE
+        val scale = min(maxW.toFloat() / sw, maxH.toFloat() / sh).let { if (canvasW > 0) it else min(1f, it) }
         return alignedSize((sw * scale).toInt(), (sh * scale).toInt())
     }
 
     /** Encoder'lar genelde 16'nın katını sever. */
     private fun alignedSize(w: Int, h: Int) = max(16, w and 0xF.inv()) to max(16, h and 0xF.inv())
+
+    private fun watchRotation() {
+        getSystemService(DisplayManager::class.java).registerDisplayListener(displayListener, main)
+    }
+
+    /** Ekran döndü: encoder'ı yeni yönün boyutuna al. */
+    private fun applyScreenSize() {
+        val enc = encoder ?: return
+        val (w, h) = targetSize()
+        if (w != enc.currentWidth || h != enc.currentHeight) {
+            enc.resize(w, h)
+            enc.requestKeyFrame()
+        }
+    }
+
+    private fun hasAudioPermission() =
+        checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     fun submitPin(pin: String) {
         backend?.submitPin(pin)
@@ -186,6 +240,9 @@ class MirrorService : Service() {
     override fun onDestroy() {
         running = false
         instance = null
+        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
+        audio?.stop()
+        audio = null
         encoder?.stop()
         backend?.stop()
         sink?.close()

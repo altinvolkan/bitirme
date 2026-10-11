@@ -21,6 +21,7 @@ interface MirrorBackend {
     /** Bloklar; ayrı thread'de çağır. */
     fun run()
     fun submitPin(pin: String)
+    fun setAudioEnabled(on: Boolean)
     fun stop()
 }
 

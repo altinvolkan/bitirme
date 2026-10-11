@@ -40,7 +40,11 @@ Android Studio'da `mirror/android`'i açıp Gradle sync yapın. `airplay.aar` va
 bölümü arayüzde görünür; yoksa uygulama sadece UDP moduyla derlenir.
 
 ## Notlar
-- Ses yok (`NoAudio`). Ekran döndürmede encoder yeniden kurulmaz.
+- Ses: Android'in AudioPlaybackCapture'ı ile sistem sesi yakalanır, ALAC olarak gönderilir
+  (RECORD_AUDIO izni gerekir). Ses yakalamayı yasaklayan uygulamalar sessiz kalır; telefonun
+  hoparlörü de çalmaya devam eder. Görüntü ile ses arası kayma varsa `Session.setVideoLatencyMs`
+  (varsayılan 30) ayarlanabilir.
+- Ekran döndürülünce encoder yeni boyutla yeniden kurulur (dikey ↔ yatay).
 - Kod bu geliştirme ortamında derlenip denenmedi; ilk derlemede düzeltme gerekebilir.
 - Apple TV'de Ayarlar → AirPlay ve HomeKit → "Erişime İzin Ver" değeri "Aynı Ağdaki Herkes" olmalı.
 - LGPL-3.0: upstream dosyalarında yaptığınız değişiklikleri dağıtırsanız paylaşmanız gerekir.
