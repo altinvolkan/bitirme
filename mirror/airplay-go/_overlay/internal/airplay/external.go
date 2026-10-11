@@ -146,6 +146,8 @@ type ExternalAudioSource struct {
 	closed    bool
 	reanchors int
 	overflows int
+	reads     int
+	lastStats time.Time
 }
 
 const (
@@ -153,7 +155,10 @@ const (
 	// alicinin gordugu RTP<->zaman eslemesi dalgalanmaz.
 	audioAnchorCalibration = 2 * time.Second
 	// Kaynak durup devam ederse (veya cok yavas saat kaymasi birikirse) capa bir kez atlar.
-	audioReanchorThreshold = 150 * time.Millisecond
+	audioReanchorThreshold = 100 * time.Millisecond
+	// PTS her zaman [simdi-audioMaxPTSAge, simdi] araliginda tutulur: alicinin "bayat kare"
+	// esigine (~85 ms) girip kare atilmasi (ses boslugu) engellenir.
+	audioMaxPTSAge = 40 * time.Millisecond
 )
 
 func NewExternalAudioSource() *ExternalAudioSource {
@@ -205,20 +210,47 @@ func (a *ExternalAudioSource) Push(pcm []byte) {
 	a.cond.Broadcast()
 }
 
-// ReadPCMFrame audioPCMFrameReader arayuzunu saglar: dst'yi doldurana dek bekler.
+// ReadPCMFrame audioPCMFrameReader arayuzunu saglar.
 func (a *ExternalAudioSource) ReadPCMFrame(dst []byte) (time.Time, error) {
+	pos, err := a.ReadPCMFramePosition(dst)
+	return pos.PTS, err
+}
+
+// ReadPCMFramePosition, dst'yi doldurana dek bekler ve karenin ornek konumunu da dondurur.
+// RTP zaman damgasi bu ornek sayacindan turetilir (SourceRTP); boylece PTS'teki kucuk
+// oynamalar sese 1 orneklik delik (tik sesi) acmaz. PTS yalniz saat eslemesi icindir.
+func (a *ExternalAudioSource) ReadPCMFramePosition(dst []byte) (audioPCMFramePosition, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for len(a.buf) < len(dst) && !a.closed {
 		a.cond.Wait()
 	}
 	if len(a.buf) < len(dst) {
-		return time.Time{}, io.EOF
+		return audioPCMFramePosition{}, io.EOF
 	}
 	start := a.pushed - uint64(len(a.buf)/4)
 	copy(dst, a.buf[:len(dst)])
 	a.buf = append(a.buf[:0], a.buf[len(dst):]...)
-	return a.anchor.Add(samplesToDuration(start)), nil
+
+	now := time.Now()
+	pts := a.anchor.Add(samplesToDuration(start))
+	if pts.After(now) {
+		pts = now
+	}
+	if oldest := now.Add(-audioMaxPTSAge); pts.Before(oldest) {
+		pts = oldest
+	}
+
+	a.reads++
+	if now.Sub(a.lastStats) >= 5*time.Second {
+		if !a.lastStats.IsZero() {
+			log.Printf("[AUDIO-EXT] 5sn: okunan=%d tampon=%dms tasma=%d capa-yenileme=%d",
+				a.reads, len(a.buf)/4*1000/externalAudioRate, a.overflows, a.reanchors)
+		}
+		a.lastStats = now
+		a.reads = 0
+	}
+	return audioPCMFramePosition{PTS: pts, SourceRTP: uint32(start), HasSourceRTP: true}, nil
 }
 
 // Close bekleyen okuyucuyu io.EOF ile serbest birakir.
