@@ -139,8 +139,9 @@ type ExternalAudioSource struct {
 	mu        sync.Mutex
 	cond      *sync.Cond
 	buf       []byte
-	pushed    uint64 // atilanlar dahil bugune dek itilen ornek sayisi
-	anchor    time.Time
+	pushed    uint64    // atilanlar dahil bugune dek itilen ornek sayisi
+	anchor    time.Time // PTS hesabinda kullanilan, hiz sinirli capa
+	target    time.Time // jitter suzgecinin onerdigi capa; anchor ona yaklasir
 	firstPush time.Time
 	have      bool
 	closed    bool
@@ -156,9 +157,13 @@ const (
 	audioAnchorCalibration = 2 * time.Second
 	// Kaynak durup devam ederse (veya cok yavas saat kaymasi birikirse) capa bir kez atlar.
 	audioReanchorThreshold = 100 * time.Millisecond
-	// PTS her zaman [simdi-audioMaxPTSAge, simdi] araliginda tutulur: alicinin "bayat kare"
-	// esigine (~85 ms) girip kare atilmasi (ses boslugu) engellenir.
-	audioMaxPTSAge = 40 * time.Millisecond
+	// Capa yukari dogru cok yavas izlenir (saat kaymasini takip eder, jitter'i degil):
+	// her itmede fark/audioAnchorSlowDiv kadar.
+	audioAnchorSlowDiv = 2000
+	// Capa hedefine en fazla bu kadar hizla yaklasir (itme basina). 10 ms'lik itmede 20 us =
+	// saniyede 2 ms: ardisik karelerin PTS araligi neredeyse tam 352 ornek kalir ve alicinin
+	// gordugu saat eslemesi sicramaz.
+	audioAnchorSlewPerPush = 20 * time.Microsecond
 )
 
 func NewExternalAudioSource() *ExternalAudioSource {
@@ -189,14 +194,27 @@ func (a *ExternalAudioSource) Push(pcm []byte) {
 	candidate := now.Add(-samplesToDuration(a.pushed))
 	switch {
 	case !a.have:
-		a.anchor, a.have, a.firstPush = candidate, true, now
-	case candidate.Before(a.anchor):
-		a.anchor = candidate // daha erken = gercege daha yakin
-	case now.Sub(a.firstPush) > audioAnchorCalibration && candidate.Sub(a.anchor) > audioReanchorThreshold:
+		a.anchor, a.target, a.have, a.firstPush = candidate, candidate, true, now
+	case candidate.Before(a.target):
+		a.target = candidate // daha erken = gercege daha yakin
+	case now.Sub(a.firstPush) > audioAnchorCalibration && candidate.Sub(a.target) > audioReanchorThreshold:
+		// Kaynak durup devam etti: tek seferlik atlama (RTP sayaci etkilenmez).
 		a.reanchors++
 		log.Printf("[AUDIO-EXT] kaynak %v gecikti, zaman capasi yenilendi (#%d)",
-			candidate.Sub(a.anchor).Round(time.Millisecond), a.reanchors)
-		a.anchor = candidate
+			candidate.Sub(a.target).Round(time.Millisecond), a.reanchors)
+		a.anchor, a.target = candidate, candidate
+	default:
+		// Normal jitter: hedef cok yavas yaklasir (saat kaymasini izler, jitter'i degil).
+		a.target = a.target.Add(candidate.Sub(a.target) / audioAnchorSlowDiv)
+	}
+	// anchor hedefe hiz sinirli yaklasir: PTS dogrusal kalir, saat eslemesi (TimeAnnounce)
+	// dalgalanmaz; aksi halde alici her dalgalanmada ornek atip ekler ve konusmada tik duyulur.
+	if d := a.target.Sub(a.anchor); d > audioAnchorSlewPerPush {
+		a.anchor = a.anchor.Add(audioAnchorSlewPerPush)
+	} else if d < -audioAnchorSlewPerPush {
+		a.anchor = a.anchor.Add(-audioAnchorSlewPerPush)
+	} else {
+		a.anchor = a.target
 	}
 
 	if len(a.buf) > externalAudioMaxBytes {
@@ -236,9 +254,6 @@ func (a *ExternalAudioSource) ReadPCMFramePosition(dst []byte) (audioPCMFramePos
 	pts := a.anchor.Add(samplesToDuration(start))
 	if pts.After(now) {
 		pts = now
-	}
-	if oldest := now.Add(-audioMaxPTSAge); pts.Before(oldest) {
-		pts = oldest
 	}
 
 	a.reads++

@@ -36,7 +36,7 @@ type Listener interface {
 }
 
 // libVersion, AAR'in hangi kaynaktan uretildigini gosterir (arayuzde kontrol icin).
-const libVersion = "r4-latency"
+const libVersion = "r5-smooth"
 
 // Version AAR surumunu dondurur.
 func Version() string { return libVersion }
