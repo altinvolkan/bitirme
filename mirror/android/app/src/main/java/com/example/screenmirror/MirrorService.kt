@@ -129,7 +129,10 @@ class MirrorService : Service() {
         val enc = arrayOfNulls<ScreenEncoder>(1)
         val snd = UdpVideoSender(host, port) { enc[0]?.requestKeyFrame() }
         sink = snd
-        enc[0] = ScreenEncoder(proj, w, h, resources.displayMetrics.densityDpi, snd)
+        enc[0] = ScreenEncoder(
+            proj, w, h, resources.displayMetrics.densityDpi, snd,
+            watermarkContext = applicationContext,
+        )
         encoder = enc[0]
         enc[0]!!.start()
         watchRotation()
@@ -192,7 +195,7 @@ class MirrorService : Service() {
         LiveInfo.height = eh
         encoder = ScreenEncoder(
             proj, ew, eh, resources.displayMetrics.densityDpi, sink!!,
-            bitrate = bitrateBps, fps = AIRPLAY_FPS,
+            bitrate = bitrateBps, fps = AIRPLAY_FPS, watermarkContext = applicationContext,
         ).also { it.start() }
         watchRotation()
 

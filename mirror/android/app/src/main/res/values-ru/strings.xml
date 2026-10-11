@@ -64,7 +64,11 @@
     <string name="onb6_title">Приложения с защитой DRM нельзя транслировать!</string>
     <string name="onb6_body">Приложения с защитой контента, например Netflix и Spotify, показывают чёрный экран или молчат. Учтите это перед покупкой.</string>
     <string name="premium_title">Трансляция без рекламы.</string>
-    <string name="premium_body">Все функции трансляции остаются бесплатными. Подписка только отключает рекламу.</string>
+    <string name="premium_body">Все функции трансляции остаются бесплатными. Подписка только отключает рекламу и водяной знак.</string>
+    <string name="premium_b4">Без водяного знака на ТВ</string>
+    <string name="wm_banner">Уберите водяной знак с Premium</string>
+    <string name="wm_card_title">Водяной знак на ТВ</string>
+    <string name="wm_card_body">Уберите водяной знак и рекламу с Premium</string>
     <string name="premium_per_month">/ мес.</string>
     <string name="premium_b1">Без баннера на главном экране</string>
     <string name="premium_b2">Без полноэкранной рекламы перед трансляцией</string>

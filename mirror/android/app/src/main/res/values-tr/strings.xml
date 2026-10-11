@@ -64,7 +64,11 @@
     <string name="onb6_title">DRM’li uygulamalar yansıtılamaz!</string>
     <string name="onb6_body">Netflix, Spotify gibi içerik koruması olan uygulamalar siyah ekran verir ya da sessiz kalır. Satın alım yapmadan önce bunu göz önünde bulundur.</string>
     <string name="premium_title">Reklamsız yansıt.</string>
-    <string name="premium_body">Yansıtma özelliklerinin hepsi ücretsiz kalır. Abonelik yalnızca reklamları kaldırır.</string>
+    <string name="premium_body">Yansıtma özelliklerinin hepsi ücretsiz kalır. Abonelik yalnızca reklamları ve filigranı kaldırır.</string>
+    <string name="premium_b4">TV’de filigran yok</string>
+    <string name="wm_banner">Bu filigranı Premium ile kaldır</string>
+    <string name="wm_card_title">TV’de filigran görünüyor</string>
+    <string name="wm_card_body">Premium ile filigranı ve reklamları kaldır</string>
     <string name="premium_per_month">/ ay</string>
     <string name="premium_b1">Ana ekranda banner yok</string>
     <string name="premium_b2">Yansıtmadan önce tam ekran reklam yok</string>

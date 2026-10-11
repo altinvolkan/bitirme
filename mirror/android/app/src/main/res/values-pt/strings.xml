@@ -64,7 +64,11 @@
     <string name="onb6_title">Apps com proteção DRM não podem ser espelhados!</string>
     <string name="onb6_body">Apps com proteção de conteúdo, como Netflix e Spotify, mostram tela preta ou ficam sem som. Considere isso antes de comprar.</string>
     <string name="premium_title">Espelhe sem anúncios.</string>
-    <string name="premium_body">Todos os recursos de espelhamento continuam gratuitos. A assinatura só remove os anúncios.</string>
+    <string name="premium_body">Todos os recursos de espelhamento continuam gratuitos. A assinatura só remove os anúncios e a marca d’água.</string>
+    <string name="premium_b4">Sem marca d’água na TV</string>
+    <string name="wm_banner">Remova esta marca d’água com o Premium</string>
+    <string name="wm_card_title">Marca d’água na TV</string>
+    <string name="wm_card_body">Remova a marca d’água e os anúncios com o Premium</string>
     <string name="premium_per_month">/ mês</string>
     <string name="premium_b1">Sem banner na tela inicial</string>
     <string name="premium_b2">Sem anúncio em tela cheia antes de espelhar</string>

@@ -1,5 +1,6 @@
 package com.example.screenmirror
 
+import android.content.Context
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.MediaCodec
@@ -8,6 +9,7 @@ import android.media.MediaFormat
 import android.media.projection.MediaProjection
 import android.os.Bundle
 import android.view.Surface
+import com.example.screenmirror.monetization.Entitlements
 
 /**
  * MediaProjection -> VirtualDisplay -> MediaCodec (H.264, düşük gecikme) -> FrameSink.
@@ -24,6 +26,8 @@ class ScreenEncoder(
     private val sender: FrameSink,
     private val bitrate: Int = 6_000_000,
     private val fps: Int = 60,
+    /** Verilirse ve kullanıcı premium değilse görüntüye filigran basılır. */
+    private val watermarkContext: Context? = null,
 ) {
     private var display: VirtualDisplay? = null
     private var drain: Drain? = null
@@ -73,7 +77,11 @@ class ScreenEncoder(
     /** Tek bir codec örneği ve onu boşaltan thread. */
     private inner class Drain(w: Int, h: Int) {
         private val codec: MediaCodec
+        private val encoderSurface: Surface
+
+        /** VirtualDisplay'in çizeceği yüzey: filigran varsa renderer'ın, yoksa doğrudan encoder'ın. */
         val surface: Surface
+        private var watermark: WatermarkRenderer? = null
 
         @Volatile private var running = false
         private var thread: Thread? = null
@@ -96,8 +104,19 @@ class ScreenEncoder(
             }
             codec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-            surface = codec.createInputSurface()
+            encoderSurface = codec.createInputSurface()
             codec.start()
+            var target = encoderSurface
+            val ctx = watermarkContext
+            if (ctx != null && !Entitlements.premium) {
+                val r = WatermarkRenderer(ctx, w, h, encoderSurface)
+                val input = r.start()
+                if (input != null) {
+                    watermark = r
+                    target = input
+                }
+            }
+            surface = target
         }
 
         fun begin() {
@@ -155,12 +174,14 @@ class ScreenEncoder(
         fun close() {
             running = false
             thread?.join(500)
+            watermark?.release()
+            watermark = null
             try {
                 codec.stop()
             } catch (_: IllegalStateException) {
             }
             codec.release()
-            surface.release()
+            encoderSurface.release()
         }
     }
 }

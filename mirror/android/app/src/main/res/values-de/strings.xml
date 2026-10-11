@@ -64,7 +64,11 @@
     <string name="onb6_title">Apps mit DRM-Schutz lassen sich nicht spiegeln!</string>
     <string name="onb6_body">Apps mit Inhaltsschutz wie Netflix und Spotify zeigen einen schwarzen Bildschirm oder bleiben stumm. Bedenke das vor einem Kauf.</string>
     <string name="premium_title">Spiegeln ohne Werbung.</string>
-    <string name="premium_body">Alle Spiegelungsfunktionen bleiben kostenlos. Das Abo entfernt nur die Werbung.</string>
+    <string name="premium_body">Alle Spiegelungsfunktionen bleiben kostenlos. Das Abo entfernt nur Werbung und Wasserzeichen.</string>
+    <string name="premium_b4">Kein Wasserzeichen auf dem TV</string>
+    <string name="wm_banner">Mit Premium verschwindet dieses Wasserzeichen</string>
+    <string name="wm_card_title">Wasserzeichen auf dem TV</string>
+    <string name="wm_card_body">Mit Premium Wasserzeichen und Werbung entfernen</string>
     <string name="premium_per_month">/ Monat</string>
     <string name="premium_b1">Kein Banner auf dem Startbildschirm</string>
     <string name="premium_b2">Keine Vollbildwerbung vor dem Spiegeln</string>

@@ -64,7 +64,11 @@
     <string name="onb6_title">Le app protette da DRM non possono essere trasmesse!</string>
     <string name="onb6_body">Le app con protezione dei contenuti, come Netflix e Spotify, mostrano uno schermo nero o restano mute. Tienilo presente prima di acquistare.</string>
     <string name="premium_title">Trasmetti senza pubblicità.</string>
-    <string name="premium_body">Tutte le funzioni di mirroring restano gratuite. L’abbonamento rimuove solo la pubblicità.</string>
+    <string name="premium_body">Tutte le funzioni di mirroring restano gratuite. L’abbonamento rimuove solo pubblicità e filigrana.</string>
+    <string name="premium_b4">Nessuna filigrana sulla TV</string>
+    <string name="wm_banner">Rimuovi questa filigrana con Premium</string>
+    <string name="wm_card_title">Filigrana sulla TV</string>
+    <string name="wm_card_body">Rimuovi filigrana e pubblicità con Premium</string>
     <string name="premium_per_month">/ mese</string>
     <string name="premium_b1">Nessun banner nella schermata principale</string>
     <string name="premium_b2">Nessun annuncio a schermo intero prima del mirroring</string>

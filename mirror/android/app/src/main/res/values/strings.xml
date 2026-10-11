@@ -65,7 +65,11 @@
     <string name="onb6_title">DRM-protected apps can’t be mirrored!</string>
     <string name="onb6_body">Apps with content protection, like Netflix and Spotify, show a black screen or stay silent. Keep this in mind before making a purchase.</string>
     <string name="premium_title">Mirror without ads.</string>
-    <string name="premium_body">All mirroring features stay free. The subscription only removes ads.</string>
+    <string name="premium_body">All mirroring features stay free. The subscription only removes ads and the watermark.</string>
+    <string name="premium_b4">No watermark on the TV</string>
+    <string name="wm_banner">Remove this watermark with Premium</string>
+    <string name="wm_card_title">Watermark on the TV</string>
+    <string name="wm_card_body">Remove it and ads with Premium</string>
     <string name="premium_per_month">/ mo</string>
     <string name="premium_b1">No banner on the home screen</string>
     <string name="premium_b2">No full-screen ad before mirroring</string>

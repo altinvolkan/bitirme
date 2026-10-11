@@ -64,7 +64,11 @@
     <string name="onb6_title">Les applis protégées par DRM ne peuvent pas être recopiées !</string>
     <string name="onb6_body">Les applis avec protection de contenu, comme Netflix et Spotify, affichent un écran noir ou restent muettes. Pense-y avant tout achat.</string>
     <string name="premium_title">Recopie sans pubs.</string>
-    <string name="premium_body">Toutes les fonctions de recopie restent gratuites. L’abonnement supprime uniquement les pubs.</string>
+    <string name="premium_body">Toutes les fonctions de recopie restent gratuites. L’abonnement supprime uniquement les pubs et le filigrane.</string>
+    <string name="premium_b4">Pas de filigrane sur la TV</string>
+    <string name="wm_banner">Supprime ce filigrane avec Premium</string>
+    <string name="wm_card_title">Filigrane sur la TV</string>
+    <string name="wm_card_body">Supprime le filigrane et les pubs avec Premium</string>
     <string name="premium_per_month">/ mois</string>
     <string name="premium_b1">Pas de bannière sur l’écran d’accueil</string>
     <string name="premium_b2">Pas de pub plein écran avant la recopie</string>

@@ -13,6 +13,7 @@ import android.widget.TextView
 import com.example.screenmirror.LiveInfo
 import com.example.screenmirror.MainActivity
 import com.example.screenmirror.MirrorService
+import com.example.screenmirror.monetization.Entitlements
 
 class LiveScreen(a: MainActivity) : Screen(a) {
 
@@ -77,6 +78,7 @@ class LiveScreen(a: MainActivity) : Screen(a) {
         if (LiveInfo.mode == MirrorService.MODE_AIRPLAY) {
             col.add(audioCard(), top = 12)
         }
+        if (!Entitlements.premium) col.add(premiumCard(), top = 12)
         col.add(
             ctx.label(str(R.string.live_rotate_hint), 13f, C.DIM, 400).apply { gravity = Gravity.CENTER },
             top = 14,
@@ -98,6 +100,22 @@ class LiveScreen(a: MainActivity) : Screen(a) {
             setPadding(dp(16), dp(14), dp(16), dp(14))
             add(ctx.label(name, 13f, C.MUTED, 600))
             add(value, top = 4)
+        }
+    }
+
+    /** Ücretsiz sürümde TV'de filigran görünür; buradan Premium'a yönlendir. */
+    private fun premiumCard(): View {
+        val ctx = a
+        return ctx.row {
+            background = ctx.rippleRounded(C.GOLD_TINT, 20, C.GOLD, 1)
+            setPadding(dp(16), dp(12), dp(12), dp(12))
+            isClickable = true
+            val t = ctx.column {}
+            t.add(ctx.label(str(R.string.wm_card_title), 16f, C.GOLD, 700))
+            t.add(ctx.label(str(R.string.wm_card_body), 13f, C.MUTED, 400), top = 2)
+            add(t, w = 0, weight = 1f)
+            add(ctx.icon(Icons.CHEVRON, C.GOLD, 2f), w = dp(20), h = dp(20))
+            setOnClickListener { a.openPremium() }
         }
     }
 
