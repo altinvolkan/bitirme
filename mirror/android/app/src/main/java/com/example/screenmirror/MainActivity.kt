@@ -2,15 +2,19 @@ package com.example.screenmirror
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
+import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,24 +23,39 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var status: TextView
     private lateinit var hostField: EditText
-    private lateinit var button: Button
+    private lateinit var udpButton: Button
+    private lateinit var airplayButton: Button
+    private lateinit var airplaySpinner: Spinner
+    private val airplayTargets = ArrayList<AirPlayTarget>()
+    private lateinit var airplayAdapter: ArrayAdapter<AirPlayTarget>
     private var port = Protocol.DEFAULT_PORT
-    private lateinit var discovery: TvDiscovery
+    private lateinit var udpDiscovery: TvDiscovery
+    private lateinit var airplayDiscovery: AirPlayDiscovery
+
+    /** Ekran yakalama izninden sonra hangi modun başlatılacağı. */
+    private var pendingMode = MirrorService.MODE_UDP
 
     private val capture = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
-        if (r.resultCode == Activity.RESULT_OK && r.data != null) {
-            val host = hostField.text.toString().trim()
-            val svc = Intent(this, MirrorService::class.java)
-                .putExtra(MirrorService.EXTRA_RESULT_CODE, r.resultCode)
-                .putExtra(MirrorService.EXTRA_DATA, r.data)
-                .putExtra(MirrorService.EXTRA_HOST, host)
-                .putExtra(MirrorService.EXTRA_PORT, port)
-            startForegroundService(svc)
-            status.text = "Yansıtılıyor → $host:$port"
-        } else {
+        if (r.resultCode != Activity.RESULT_OK || r.data == null) {
             status.text = "Ekran yakalama izni verilmedi"
+            refreshButtons()
+            return@registerForActivityResult
         }
-        refreshButton()
+        val svc = Intent(this, MirrorService::class.java)
+            .putExtra(MirrorService.EXTRA_RESULT_CODE, r.resultCode)
+            .putExtra(MirrorService.EXTRA_DATA, r.data)
+            .putExtra(MirrorService.EXTRA_MODE, pendingMode)
+        if (pendingMode == MirrorService.MODE_AIRPLAY) {
+            val target = airplaySpinner.selectedItem as AirPlayTarget
+            svc.putExtra(MirrorService.EXTRA_TARGET, target)
+            status.text = "AirPlay: ${target.name} bağlanıyor…"
+        } else {
+            val host = hostField.text.toString().trim()
+            svc.putExtra(MirrorService.EXTRA_HOST, host).putExtra(MirrorService.EXTRA_PORT, port)
+            status.text = "Yansıtılıyor → $host:$port"
+        }
+        startForegroundService(svc)
+        refreshButtons()
     }
 
     private val notifPermission =
@@ -45,7 +64,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val pad = (24 * resources.displayMetrics.density).toInt()
+        val density = resources.displayMetrics.density
+        val pad = (24 * density).toInt()
+        val gap = (12 * density).toInt()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -55,21 +76,43 @@ class MainActivity : ComponentActivity() {
             textSize = 16f
             text = "Apple TV aranıyor…"
         }
+        root.addView(status)
+
+        // --- AirPlay (doğrudan Apple TV) ---
+        val airplayLabel = TextView(this).apply {
+            textSize = 14f
+            setPadding(0, gap * 2, 0, 0)
+            text = if (AirPlayBackendLoader.available) "AirPlay (Apple TV'ye doğrudan)"
+            else "AirPlay kapalı: airplay.aar yok (mirror/airplay-go/README.md)"
+        }
+        airplayAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, airplayTargets)
+        airplaySpinner = Spinner(this).apply { adapter = airplayAdapter }
+        airplayButton = Button(this).apply { setOnClickListener { onAirPlayButton() } }
+        root.addView(airplayLabel)
+        if (AirPlayBackendLoader.available) {
+            root.addView(airplaySpinner)
+            root.addView(airplayButton)
+        }
+
+        // --- Kendi tvOS alıcımız (UDP) ---
+        val udpLabel = TextView(this).apply {
+            textSize = 14f
+            setPadding(0, gap * 2, 0, 0)
+            text = "Kendi tvOS alıcımız (UDP)"
+        }
         hostField = EditText(this).apply {
             hint = "Apple TV IP (otomatik dolar, gerekirse elle gir)"
             inputType = InputType.TYPE_CLASS_PHONE
         }
-        button = Button(this).apply {
-            setOnClickListener { onButton() }
-        }
-        root.addView(status)
+        udpButton = Button(this).apply { setOnClickListener { onUdpButton() } }
+        root.addView(udpLabel)
         root.addView(hostField)
-        root.addView(button)
+        root.addView(udpButton)
         setContentView(root)
 
         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
 
-        discovery = TvDiscovery(this) { name, host, p ->
+        udpDiscovery = TvDiscovery(this) { name, host, p ->
             port = p
             if (host != null) {
                 hostField.setText(host)
@@ -78,40 +121,102 @@ class MainActivity : ComponentActivity() {
                 status.text = "Bulundu: $name ama IPv4 çözülemedi; TV ekranındaki IP'yi elle gir"
             }
         }
-        refreshButton()
+        airplayDiscovery = AirPlayDiscovery(this) { t ->
+            if (airplayTargets.none { it.ip == t.ip }) {
+                airplayTargets.add(t)
+                airplayAdapter.notifyDataSetChanged()
+                refreshButtons()
+            }
+        }
+        refreshButtons()
     }
 
     override fun onStart() {
         super.onStart()
-        discovery.start()
+        udpDiscovery.start()
+        if (AirPlayBackendLoader.available) airplayDiscovery.start()
+        MirrorEvents.onStatus = { state, detail -> showAirPlayState(state, detail) }
+        MirrorEvents.onPinRequired = { askPin() }
     }
 
     override fun onStop() {
-        discovery.stop()
+        MirrorEvents.onStatus = null
+        MirrorEvents.onPinRequired = null
+        udpDiscovery.stop()
+        if (AirPlayBackendLoader.available) airplayDiscovery.stop()
         super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
-        refreshButton()
+        refreshButtons()
     }
 
-    private fun onButton() {
-        if (MirrorService.running) {
-            startService(Intent(this, MirrorService::class.java).setAction(MirrorService.ACTION_STOP))
-            status.text = "Durduruldu"
-            button.postDelayed({ refreshButton() }, 300)
-            return
-        }
+    private fun onUdpButton() {
+        if (MirrorService.running) return stopService()
         if (hostField.text.isNullOrBlank()) {
             status.text = "Önce Apple TV IP'sini gir veya bulunmasını bekle"
             return
         }
+        pendingMode = MirrorService.MODE_UDP
+        requestCapture()
+    }
+
+    private fun onAirPlayButton() {
+        if (MirrorService.running) return stopService()
+        if (airplayTargets.isEmpty()) {
+            status.text = "AirPlay cihazı bulunamadı; aynı Wi-Fi'da mısın?"
+            return
+        }
+        pendingMode = MirrorService.MODE_AIRPLAY
+        requestCapture()
+    }
+
+    private fun requestCapture() {
         val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         capture.launch(mpm.createScreenCaptureIntent())
     }
 
-    private fun refreshButton() {
-        button.text = if (MirrorService.running) "Durdur" else "Yansıtmayı başlat"
+    private fun stopService() {
+        startService(Intent(this, MirrorService::class.java).setAction(MirrorService.ACTION_STOP))
+        status.text = "Durduruldu"
+        udpButton.postDelayed({ refreshButtons() }, 300)
+    }
+
+    private fun showAirPlayState(state: String, detail: String) {
+        status.text = when (state) {
+            "connecting" -> "AirPlay: bağlanıyor… $detail"
+            "pairing" -> "AirPlay: eşleştiriliyor…"
+            "setup" -> "AirPlay: yayın kuruluyor…"
+            "streaming" -> "AirPlay: yansıtılıyor → $detail"
+            "error" -> "AirPlay hatası: $detail"
+            else -> "Durduruldu"
+        }
+        refreshButtons()
+    }
+
+    /** Apple TV ekranında gösterilen PIN'i kullanıcıdan alır. */
+    private fun askPin() {
+        val input = EditText(this).apply {
+            hint = "Apple TV'deki kod"
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Eşleştirme kodu")
+            .setMessage("Apple TV ekranında görünen kodu gir")
+            .setView(input)
+            .setCancelable(false)
+            .setPositiveButton("Tamam") { _, _ -> MirrorService.instance?.submitPin(input.text.toString().trim()) }
+            .setNegativeButton("İptal") { _, _ -> MirrorService.instance?.submitPin("") }
+            .show()
+    }
+
+    private fun refreshButtons() {
+        val running = MirrorService.running
+        udpButton.text = if (running) "Durdur" else "Yansıtmayı başlat (UDP)"
+        airplayButton.text = if (running) "Durdur" else "AirPlay ile yansıt"
+        val hasAirPlay = airplayTargets.isNotEmpty()
+        airplayButton.isEnabled = running || hasAirPlay
+        airplaySpinner.visibility = if (hasAirPlay) View.VISIBLE else View.GONE
     }
 }

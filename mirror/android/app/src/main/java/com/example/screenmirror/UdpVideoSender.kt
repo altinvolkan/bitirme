@@ -1,6 +1,5 @@
 package com.example.screenmirror
 
-import java.io.Closeable
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -12,7 +11,7 @@ class UdpVideoSender(
     host: String,
     port: Int,
     private val onKeyframeRequest: () -> Unit,
-) : Closeable {
+) : FrameSink {
 
     private val socket = DatagramSocket().apply {
         sendBufferSize = 1 shl 20
@@ -38,7 +37,7 @@ class UdpVideoSender(
     }
 
     /** Sadece encoder thread'inden çağrılır. */
-    fun sendFrame(data: ByteArray, size: Int, keyframe: Boolean) {
+    override fun sendFrame(data: ByteArray, size: Int, keyframe: Boolean) {
         val fragCount = (size + Protocol.MAX_PAYLOAD - 1) / Protocol.MAX_PAYLOAD
         val id = frameId++
         for (i in 0 until fragCount) {

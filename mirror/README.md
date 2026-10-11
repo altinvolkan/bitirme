@@ -1,5 +1,8 @@
 # Android → Apple TV düşük gecikmeli ekran yansıtma
 
+İki yol var: (A) Apple TV'ye doğrudan AirPlay ile, uygulama kurmadan: `airplay-go/README.md`.
+(B) Kendi tvOS alıcımız + UDP: aşağıdaki anlatım.
+
 ```
 Android (mirror/android)                              Apple TV (mirror/tvos)
 MediaProjection → MediaCodec H.264 → UDP  ───────►  UDP → birleştirme → AVSampleBufferDisplayLayer

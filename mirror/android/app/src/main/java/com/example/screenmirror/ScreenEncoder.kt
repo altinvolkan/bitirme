@@ -17,7 +17,7 @@ class ScreenEncoder(
     private val width: Int,
     private val height: Int,
     private val dpi: Int,
-    private val sender: UdpVideoSender,
+    private val sender: FrameSink,
     private val bitrate: Int = 6_000_000,
     private val fps: Int = 60,
 ) {

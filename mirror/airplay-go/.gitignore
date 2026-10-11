@@ -1,0 +1,8 @@
+# setup.sh ile üretilenler (upstream kodu repoya girmez)
+/internal/
+/sender/
+/cmd/
+/go.mod
+/go.sum
+/LICENSE
+/COPYING.GPL

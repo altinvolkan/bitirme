@@ -8,3 +8,4 @@ tvos/Config/Info.plist
 xcuserdata/
 DerivedData/
 .DS_Store
+android/app/libs/*.aar
