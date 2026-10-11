@@ -86,7 +86,8 @@
     <string name="set_group_stream">Yayın</string>
     <string name="set_quality">Görüntü kalitesi</string>
     <string name="set_audio">Sistem sesini gönder</string>
-    <string name="set_apply_hint">Gecikme ve kalite, bir sonraki yansıtmada geçerli olur.</string>
+    <string name="set_apply_hint">Gecikme, kalite ve kare hızı bir sonraki yansıtmada geçerli olur.</string>
+    <string name="set_fps_hint">60 fps daha akıcıdır ama daha çok pil harcar ve telefonu daha çok ısıtır.</string>
     <string name="set_group_devices">Cihazlar</string>
     <string name="set_paired">Eşleşmiş ekranlar</string>
     <string name="set_reset">Tüm eşleşmeleri sıfırla</string>

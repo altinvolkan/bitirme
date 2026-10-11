@@ -38,6 +38,13 @@ class UiPrefs(context: Context) {
             sp.edit().putInt("bitrate_idx", v).apply()
         }
 
+    /** Kare hızı seçimi: FPS_OPTIONS dizinine; varsayılan 30 (daha az ısı). */
+    var fpsIdx: Int
+        get() = sp.getInt("fps_idx", 0).coerceIn(0, FPS_OPTIONS.lastIndex)
+        set(v) {
+            sp.edit().putInt("fps_idx", v).apply()
+        }
+
     var audio: Boolean
         get() = sp.getBoolean("audio", true)
         set(v) {
@@ -58,10 +65,12 @@ class UiPrefs(context: Context) {
 
     val latencyMs: Int get() = LATENCIES[latencyIdx].second
     val bitrateMbps: Int get() = BITRATES[bitrateIdx]
+    val fps: Int get() = FPS_OPTIONS[fpsIdx]
 
     companion object {
         val LATENCIES = listOf(R.string.latency_low to 120, R.string.latency_balanced to 250, R.string.latency_stable to 400)
         val BITRATES = listOf(4, 8, 12)
+        val FPS_OPTIONS = listOf(30, 60)
     }
 }
 

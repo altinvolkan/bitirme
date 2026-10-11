@@ -86,7 +86,8 @@
     <string name="set_group_stream">Diffusion</string>
     <string name="set_quality">Qualité d’image</string>
     <string name="set_audio">Envoyer le son du système</string>
-    <string name="set_apply_hint">La latence et la qualité s’appliquent à la prochaine recopie.</string>
+    <string name="set_apply_hint">La latence, la qualité et la fréquence s’appliquent à la prochaine recopie.</string>
+    <string name="set_fps_hint">60 fps est plus fluide mais consomme plus de batterie et chauffe davantage.</string>
     <string name="set_group_devices">Appareils</string>
     <string name="set_paired">Écrans associés</string>
     <string name="set_reset">Réinitialiser toutes les associations</string>

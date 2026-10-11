@@ -9,7 +9,6 @@ import android.media.MediaFormat
 import android.media.projection.MediaProjection
 import android.os.Bundle
 import android.view.Surface
-import com.example.screenmirror.monetization.Entitlements
 
 /**
  * MediaProjection -> VirtualDisplay -> MediaCodec (H.264, düşük gecikme) -> FrameSink.
@@ -26,7 +25,10 @@ class ScreenEncoder(
     private val sender: FrameSink,
     private val bitrate: Int = 6_000_000,
     private val fps: Int = 60,
-    /** Verilirse ve kullanıcı premium değilse görüntüye filigran basılır. */
+    /**
+     * Verilirse görüntü bir GL katmanından geçer: kare hızı [fps]'e sınırlanır (120 Hz ekranlar bile
+     * seçilen hızda kalır) ve premium değilse filigran basılır.
+     */
     private val watermarkContext: Context? = null,
     /** Filigran için görüntünün yanlarına/üstüne-altına eklenen siyah bant kalınlığı (px, 16'nın katı). */
     private var padX: Int = 0,
@@ -97,9 +99,9 @@ class ScreenEncoder(
         init {
             var target: Surface
             val ctx = watermarkContext
-            if (ctx != null && !Entitlements.premium) {
+            if (ctx != null) {
                 configure(cw + 2 * px, ch + 2 * py)
-                val r = WatermarkRenderer(ctx, cw + 2 * px, ch + 2 * py, cw, ch, px, py, encoderSurface)
+                val r = WatermarkRenderer(ctx, cw + 2 * px, ch + 2 * py, cw, ch, px, py, fps, encoderSurface)
                 val input = r.start()
                 if (input != null) {
                     watermark = r
@@ -126,7 +128,9 @@ class ScreenEncoder(
                 setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
                 // Baseline: B-frame / reorder yok => ekstra gecikme yok
                 setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
-                setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel41)
+                setInteger(MediaFormat.KEY_LEVEL, levelFor(w, h))
+                // GL katmanı yoksa (yedek yol) kare hızını encoder'a sınırlat; desteklemeyen codec yok sayar
+                setInteger("max-fps-to-encoder", fps)
                 setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0)
                 setInteger(MediaFormat.KEY_PRIORITY, 0) // realtime
                 setInteger("low-latency", 1) // KEY_LOW_LATENCY (API 30); desteklemeyen encoder yok sayar
@@ -137,6 +141,16 @@ class ScreenEncoder(
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
             encoderSurface = codec.createInputSurface()
             codec.start()
+        }
+
+        /** H.264 seviyesi: 16x16'lık makrobloklar x kare hızı, seviyenin saniyedeki sınırını aşmasın. */
+        private fun levelFor(w: Int, h: Int): Int {
+            val mbPerSec = ((w + 15) / 16) * ((h + 15) / 16) * fps
+            return when {
+                mbPerSec <= 245_760 -> MediaCodecInfo.CodecProfileLevel.AVCLevel41
+                mbPerSec <= 522_240 -> MediaCodecInfo.CodecProfileLevel.AVCLevel42
+                else -> MediaCodecInfo.CodecProfileLevel.AVCLevel51
+            }
         }
 
         private fun releaseCodec() {

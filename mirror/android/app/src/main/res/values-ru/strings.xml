@@ -86,7 +86,8 @@
     <string name="set_group_stream">Трансляция</string>
     <string name="set_quality">Качество изображения</string>
     <string name="set_audio">Передавать системный звук</string>
-    <string name="set_apply_hint">Задержка и качество применяются при следующей трансляции.</string>
+    <string name="set_apply_hint">Задержка, качество и частота кадров применяются при следующей трансляции.</string>
+    <string name="set_fps_hint">60 fps плавнее, но расходует больше заряда и сильнее греет телефон.</string>
     <string name="set_group_devices">Устройства</string>
     <string name="set_paired">Сопряжённые экраны</string>
     <string name="set_reset">Сбросить все сопряжения</string>

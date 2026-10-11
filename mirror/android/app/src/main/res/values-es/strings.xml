@@ -86,7 +86,8 @@
     <string name="set_group_stream">Transmisión</string>
     <string name="set_quality">Calidad de imagen</string>
     <string name="set_audio">Enviar audio del sistema</string>
-    <string name="set_apply_hint">La latencia y la calidad se aplican en el siguiente duplicado.</string>
+    <string name="set_apply_hint">La latencia, la calidad y los fotogramas se aplican en el siguiente duplicado.</string>
+    <string name="set_fps_hint">60 fps es más fluido, pero gasta más batería y calienta más el teléfono.</string>
     <string name="set_group_devices">Dispositivos</string>
     <string name="set_paired">Pantallas emparejadas</string>
     <string name="set_reset">Restablecer todos los emparejamientos</string>

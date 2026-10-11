@@ -36,6 +36,12 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
                 rebuild()
             }
         }
+        val rFps = ctx.settingRow(str(R.string.stat_fps), "${a.prefs.fps} fps") {
+            choose(str(R.string.stat_fps), UiPrefs.FPS_OPTIONS.map { "$it fps" }, a.prefs.fpsIdx) {
+                a.prefs.fpsIdx = it
+                rebuild()
+            }
+        }
         val rAudio = ctx.row {
             setPadding(dp(16), 0, dp(16), 0)
             minimumHeight = dp(60)
@@ -45,9 +51,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
                 MirrorService.instance?.setAudioMuted(!on)
             }, w = dp(52), h = dp(32))
         }
-        col.add(ctx.groupCard(rLatency, rBitrate, rAudio), top = 8)
+        col.add(ctx.groupCard(rLatency, rBitrate, rFps, rAudio), top = 8)
         col.add(
-            ctx.label(str(R.string.set_apply_hint), 12f, C.DIM, 400),
+            ctx.label(str(R.string.set_apply_hint) + " " + str(R.string.set_fps_hint), 12f, C.DIM, 400),
             top = 6, start = 4,
         )
 

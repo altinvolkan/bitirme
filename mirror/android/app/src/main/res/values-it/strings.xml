@@ -86,7 +86,8 @@
     <string name="set_group_stream">Trasmissione</string>
     <string name="set_quality">Qualità dell’immagine</string>
     <string name="set_audio">Invia l’audio di sistema</string>
-    <string name="set_apply_hint">Latenza e qualità si applicano dal prossimo mirroring.</string>
+    <string name="set_apply_hint">Latenza, qualità e frame rate si applicano dal prossimo mirroring.</string>
+    <string name="set_fps_hint">60 fps è più fluido ma consuma più batteria e scalda di più il telefono.</string>
     <string name="set_group_devices">Dispositivi</string>
     <string name="set_paired">Schermi associati</string>
     <string name="set_reset">Reimposta tutte le associazioni</string>

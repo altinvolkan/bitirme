@@ -87,7 +87,8 @@
     <string name="set_group_stream">Streaming</string>
     <string name="set_quality">Picture quality</string>
     <string name="set_audio">Send system audio</string>
-    <string name="set_apply_hint">Latency and quality apply from the next mirroring session.</string>
+    <string name="set_apply_hint">Latency, quality and frame rate apply from the next mirroring session.</string>
+    <string name="set_fps_hint">60 fps is smoother but uses more battery and heats the phone more.</string>
     <string name="set_group_devices">Devices</string>
     <string name="set_paired">Paired screens</string>
     <string name="set_reset">Reset all pairings</string>

@@ -41,6 +41,7 @@ class MirrorService : Service() {
     private var wifiLock: WifiManager.WifiLock? = null
     @Volatile private var audioMuted = false
     private var bitrateBps = DEFAULT_BITRATE_MBPS * 1_000_000
+    private var targetFps = DEFAULT_FPS
 
     /** AirPlay modunda alıcının tuvali; 0 ise UDP modu. */
     private var canvasW = 0
@@ -98,6 +99,7 @@ class MirrorService : Service() {
 
             audioMuted = !intent.getBooleanExtra(EXTRA_AUDIO, true)
             bitrateBps = intent.getIntExtra(EXTRA_BITRATE_MBPS, DEFAULT_BITRATE_MBPS) * 1_000_000
+            targetFps = intent.getIntExtra(EXTRA_FPS, DEFAULT_FPS)
             val ok = when (intent.getStringExtra(EXTRA_MODE)) {
                 MODE_AIRPLAY -> startAirPlay(proj, intent)
                 else -> startUdp(proj, intent)
@@ -132,7 +134,7 @@ class MirrorService : Service() {
         sink = snd
         enc[0] = ScreenEncoder(
             proj, w, h, resources.displayMetrics.densityDpi, snd,
-            watermarkContext = applicationContext,
+            fps = targetFps, watermarkContext = applicationContext,
         )
         encoder = enc[0]
         enc[0]!!.start()
@@ -147,7 +149,7 @@ class MirrorService : Service() {
             ?: return false
         LiveInfo.reset(
             target.name, MODE_AIRPLAY, bitrateBps / 1_000_000,
-            intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS), AIRPLAY_FPS,
+            intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS), targetFps,
         )
 
         val cb = object : MirrorBackend.Callbacks {
@@ -197,7 +199,7 @@ class MirrorService : Service() {
         val (px, py) = bandsFor(ew, eh)
         encoder = ScreenEncoder(
             proj, ew, eh, resources.displayMetrics.densityDpi, sink!!,
-            bitrate = bitrateBps, fps = AIRPLAY_FPS, watermarkContext = applicationContext,
+            bitrate = bitrateBps, fps = targetFps, watermarkContext = applicationContext,
             padX = px, padY = py,
         ).also { it.start() }
         watchRotation()
@@ -334,6 +336,8 @@ class MirrorService : Service() {
         const val EXTRA_TARGET = "target"
         const val EXTRA_LATENCY_MS = "latencyMs"
         const val EXTRA_BITRATE_MBPS = "bitrateMbps"
+        const val EXTRA_FPS = "fps"
+        const val DEFAULT_FPS = 30
         const val EXTRA_AUDIO = "audio"
         const val DEFAULT_BITRATE_MBPS = 8
         const val DEFAULT_LATENCY_MS = 250
@@ -342,7 +346,6 @@ class MirrorService : Service() {
         private const val CHANNEL_ID = "mirror"
         private const val NOTIF_ID = 1
         private const val MAX_SIDE = 1280 // UDP modunda uzun kenar; 720p sınıfı => düşük gecikme
-        private const val AIRPLAY_FPS = 30
         private const val BAND_PX = 64 // filigran bantlarının en çok kalınlığı
 
         @Volatile

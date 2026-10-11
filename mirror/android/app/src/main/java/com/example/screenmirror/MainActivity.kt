@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity() {
             .putExtra(MirrorService.EXTRA_DATA, r.data)
             .putExtra(MirrorService.EXTRA_LATENCY_MS, prefs.latencyMs)
             .putExtra(MirrorService.EXTRA_BITRATE_MBPS, prefs.bitrateMbps)
+            .putExtra(MirrorService.EXTRA_FPS, prefs.fps)
             .putExtra(MirrorService.EXTRA_AUDIO, prefs.audio)
         if (dev.kind == Kind.AIRPLAY) {
             svc.putExtra(MirrorService.EXTRA_MODE, MirrorService.MODE_AIRPLAY)

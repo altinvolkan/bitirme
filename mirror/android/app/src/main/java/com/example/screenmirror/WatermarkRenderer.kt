@@ -53,8 +53,18 @@ class WatermarkRenderer(
     private val contentH: Int,
     private val padX: Int,
     private val padY: Int,
+    /** En çok bu kare hızında encoder'a kare ver (ekran 120 Hz olsa da). */
+    fps: Int,
     private val output: Surface,
 ) {
+    private val minIntervalNs = (900_000_000L / fps.coerceAtLeast(1))
+    private var lastDrawNs = 0L
+    private var trailingPending = false
+    private val trailing = Runnable {
+        trailingPending = false
+        renderFrame(false)
+    }
+
     private val thread = HandlerThread("wm-gl", Process.THREAD_PRIORITY_DISPLAY).apply { start() }
     private val handler = Handler(thread.looper)
 
@@ -223,6 +233,19 @@ class WatermarkRenderer(
                 haveFrame = true
             }
             if (!haveFrame) return
+            if (newSource && lastDrawNs != 0L) {
+                // Kare hızı sınırı: çok sık gelen kaynak karesini atla (tampon yukarıda tüketildi);
+                // son kare kaybolmasın diye sınır dolunca en yeni kareyle bir kez çiz
+                val since = System.nanoTime() - lastDrawNs
+                if (since < minIntervalNs) {
+                    if (!trailingPending) {
+                        trailingPending = true
+                        handler.postDelayed(trailing, (minIntervalNs - since) / 1_000_000L + 1)
+                    }
+                    return
+                }
+            }
+            lastDrawNs = System.nanoTime()
             if (ts <= lastPtsNs) ts = lastPtsNs + 1_000_000L
             lastPtsNs = ts
 
