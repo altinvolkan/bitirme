@@ -8,30 +8,24 @@ LINE2 = (58, 64, 76)
 SS = 4  # süper örnekleme
 
 
-def glyph(d, ox, oy, k, accent=ACCENT, bg=BG):
-    """108'lik tasarım kutusundaki logo; (ox,oy) sol üst, k ölçek."""
+def glyph(d, ox, oy, k, accent=ACCENT, bg=BG, dot=False):
+    """108'lik tasarım kutusundaki logo: ekran çerçevesi + yukarı bakan üçgen (yayın)."""
     def P(x, y):
         return ox + x * k, oy + y * k
 
-    def mix(a, t):  # accent'i bg ile karıştır (alfa yerine)
-        return tuple(int(bg[i] + (a[i] - bg[i]) * t) for i in range(3))
-
-    def circle(cx, cy, r, col):
-        x0, y0 = P(cx - r, cy - r)
-        x1, y1 = P(cx + r, cy + r)
-        d.ellipse([x0, y0, x1, y1], fill=col)
-
-    def rrect(x0, y0, x1, y1, r, col, corners):
-        a = P(x0, y0)
-        b = P(x1, y1)
-        d.rounded_rectangle([a[0], a[1], b[0], b[1]], radius=r * k, fill=col, corners=corners)
-
-    circle(54, 25.5, 5.5, accent)
-    rrect(48.5, 40, 59.5, 52.2, 5.5, accent, (True, True, False, False))
-    rrect(31, 53.2, 77, 54.8, 0.8, mix(accent, 0.55), (True, True, True, True))
-    low = mix(accent, 0.42)
-    rrect(48.5, 55.8, 59.5, 68, 5.5, low, (False, False, True, True))
-    circle(54, 82.5, 5.5, low)
+    x0, y0 = P(28, 28)
+    x1, y1 = P(80, 62)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=9 * k, outline=accent, width=int(5 * k))
+    tri = [P(54, 67.5), P(43.5, 80.5), P(64.5, 80.5), P(54, 67.5)]
+    d.polygon(tri[:3], fill=accent)
+    d.line(tri, fill=accent, width=int(3 * k), joint="curve")
+    for p in tri[:3]:
+        r = 1.5 * k
+        d.ellipse([p[0] - r, p[1] - r, p[0] + r, p[1] + r], fill=accent)
+    if dot:
+        cx, cy = P(54, 45)
+        r = 4.6 * k
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=accent)
 
 
 def icon(size, glyph_scale):
