@@ -1,0 +1,23 @@
+# build-aar.sh'nin PowerShell karşılığı (Windows).
+# Önkoşul: setup.ps1 çalışmış; ANDROID_HOME ve ANDROID_NDK_HOME ayarlı.
+#   powershell -ExecutionPolicy Bypass -File .\build-aar.ps1
+$ErrorActionPreference = 'Stop'
+Set-Location $PSScriptRoot
+
+function Run($exe) {
+    & $exe @args
+    if ($LASTEXITCODE -ne 0) { throw "$exe $args başarısız (kod $LASTEXITCODE)" }
+}
+
+if (-not $env:ANDROID_NDK_HOME) { throw 'ANDROID_NDK_HOME ayarli degil (ornek: $env:ANDROID_HOME\ndk\<surum>)' }
+
+$env:PATH += ";$(go env GOPATH)\bin"
+Run go install golang.org/x/mobile/cmd/gomobile@latest
+Run gomobile init
+Run go get golang.org/x/mobile/bind
+
+New-Item -ItemType Directory -Force ..\android\app\libs | Out-Null
+$targets = if ($env:TARGETS) { $env:TARGETS } else { 'android/arm64' }
+Run gomobile bind "-target=$targets" -androidapi 30 -o ..\android\app\libs\airplay.aar screenmirror/airplay/sender
+
+Write-Host "Uretildi: mirror\android\app\libs\airplay.aar (Android Studio'da Gradle sync yapin)"

@@ -44,3 +44,14 @@ bölümü arayüzde görünür; yoksa uygulama sadece UDP moduyla derlenir.
 - Kod bu geliştirme ortamında derlenip denenmedi; ilk derlemede düzeltme gerekebilir.
 - Apple TV'de Ayarlar → AirPlay ve HomeKit → "Erişime İzin Ver" değeri "Aynı Ağdaki Herkes" olmalı.
 - LGPL-3.0: upstream dosyalarında yaptığınız değişiklikleri dağıtırsanız paylaşmanız gerekir.
+
+## Windows
+Betiklerin PowerShell sürümleri var (`setup.ps1`, `build-aar.ps1`):
+```
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+```
+Test komutunu **cmd.exe**'de çalıştırın; PowerShell'in boru hattı ikili veriyi bozar:
+```
+cmd /c "ffmpeg -re -f lavfi -i testsrc2=size=1280x720:rate=30 -c:v libx264 -profile:v baseline -preset ultrafast -tune zerolatency -g 30 -x264-params repeat-headers=1:aud=1 -f h264 - | go run ./cmd/h264send -ip <APPLE_TV_IP>"
+```
+`ANDROID_NDK_HOME` ayarlayın, ardından `.\build-aar.ps1`.

@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 
 	"screenmirror/airplay/sender"
@@ -62,7 +63,8 @@ func main() {
 	go func() {
 		<-l.pinCh
 		fmt.Print("TV'deki PIN: ")
-		line, _ := bufio.NewReader(os.Stdin).ReadString('\n') // stdin video ile paylaşılıyorsa /dev/tty kullanın
+		console := openConsole() // stdin video akışı olduğu için PIN'i konsoldan oku
+		line, _ := bufio.NewReader(console).ReadString('\n')
 		s.SubmitPin(strings.TrimSpace(line))
 	}()
 	go feed(s)
@@ -125,4 +127,17 @@ func isKey(au []byte) bool {
 		}
 	}
 	return false
+}
+
+// openConsole: stdin ffmpeg çıktısıyla dolu olduğundan klavye için terminali açar.
+func openConsole() *os.File {
+	name := "/dev/tty"
+	if runtime.GOOS == "windows" {
+		name = "CONIN$"
+	}
+	f, err := os.Open(name)
+	if err != nil {
+		return os.Stdin
+	}
+	return f
 }
