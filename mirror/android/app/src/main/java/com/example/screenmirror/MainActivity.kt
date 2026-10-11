@@ -19,10 +19,18 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.FrameLayout
+import com.example.screenmirror.monetization.AdsManager
+import com.example.screenmirror.monetization.BillingManager
+import com.example.screenmirror.monetization.Entitlements
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var status: TextView
+    private lateinit var premiumButton: Button
+    private lateinit var bannerContainer: FrameLayout
+    private lateinit var ads: AdsManager
+    private lateinit var billing: BillingManager
     private lateinit var hostField: EditText
     private lateinit var udpButton: Button
     private lateinit var airplayButton: Button
@@ -72,6 +80,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        Entitlements.load(this)
+        ads = AdsManager(this)
+        billing = BillingManager(this) { refreshPremiumUi() }
+
         val density = resources.displayMetrics.density
         val pad = (24 * density).toInt()
         val gap = (12 * density).toInt()
@@ -116,7 +128,29 @@ class MainActivity : ComponentActivity() {
         root.addView(udpLabel)
         root.addView(hostField)
         root.addView(udpButton)
-        setContentView(root)
+
+        // --- Reklamsız abonelik ---
+        premiumButton = Button(this).apply {
+            setPadding(0, gap, 0, gap)
+            setOnClickListener {
+                if (Entitlements.premium) billing.manageSubscription(this@MainActivity)
+                else billing.launchPurchase(this@MainActivity)
+            }
+        }
+        val restore = Button(this).apply {
+            text = "Satın alımı geri yükle"
+            setOnClickListener { billing.refresh() }
+        }
+        root.addView(premiumButton)
+        root.addView(restore)
+
+        // Banner alanı en altta
+        bannerContainer = FrameLayout(this)
+        val frame = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        frame.addView(root, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        frame.addView(bannerContainer, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        setContentView(frame)
 
         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
 
@@ -137,6 +171,9 @@ class MainActivity : ComponentActivity() {
             }
         }
         refreshButtons()
+        refreshPremiumUi()
+        billing.start()
+        ads.start { refreshPremiumUi() }
     }
 
     override fun onStart() {
@@ -158,6 +195,25 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshButtons()
+        billing.refresh()
+    }
+
+    override fun onDestroy() {
+        ads.destroy()
+        billing.end()
+        super.onDestroy()
+    }
+
+    /** Premium durumuna göre banner ve abonelik düğmesini günceller. */
+    private fun refreshPremiumUi() {
+        if (Entitlements.premium) {
+            ads.hideBanner(bannerContainer)
+            premiumButton.text = "Premium aktif ✓ (aboneliği yönet)"
+        } else {
+            ads.showBanner(bannerContainer)
+            val price = billing.priceText?.let { " – $it/ay" } ?: ""
+            premiumButton.text = "Reklamsız kullan$price"
+        }
     }
 
     private fun onUdpButton() {
@@ -167,7 +223,7 @@ class MainActivity : ComponentActivity() {
             return
         }
         pendingMode = MirrorService.MODE_UDP
-        requestCapture()
+        ads.showInterstitialThen { requestCapture() }
     }
 
     private fun onAirPlayButton() {
@@ -177,10 +233,12 @@ class MainActivity : ComponentActivity() {
             return
         }
         pendingMode = MirrorService.MODE_AIRPLAY
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            requestCapture()
-        } else {
-            audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+        ads.showInterstitialThen {
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                requestCapture()
+            } else {
+                audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+            }
         }
     }
 
