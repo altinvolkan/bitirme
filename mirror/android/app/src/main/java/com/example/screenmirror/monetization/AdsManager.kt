@@ -63,6 +63,7 @@ class AdsManager(private val activity: Activity) {
     fun showBanner(container: ViewGroup) {
         if (Entitlements.premium || !sdkStarted.get()) return
         banner?.let { existing ->
+            existing.resume()
             (existing.parent as? ViewGroup)?.removeView(existing)
             container.removeAllViews()
             container.addView(existing)
@@ -80,7 +81,10 @@ class AdsManager(private val activity: Activity) {
 
     /** Ekran değişirken banner'ı yok etmeden ayırır. */
     fun detachBanner() {
-        banner?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        banner?.let {
+            it.pause() // görünmezken reklam yenileme ağ/CPU harcamasın
+            (it.parent as? ViewGroup)?.removeView(it)
+        }
     }
 
     fun hideBanner(container: ViewGroup) {

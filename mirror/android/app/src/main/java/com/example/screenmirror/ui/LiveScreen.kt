@@ -57,7 +57,7 @@ class LiveScreen(a: MainActivity) : Screen(a) {
         elapsed = ctx.label("", 16f, C.MUTED, 400)
         col.add(elapsed, top = 4)
 
-        col.add(Illustration(ctx, Art.LINK), h = dp(150), top = 8)
+        col.add(Illustration(ctx, Art.LINK, animate = false), h = dp(150), top = 8)
 
         val grid = ctx.column {}
         resV = ctx.label("", 22f, C.TEXT, 700, display = true)

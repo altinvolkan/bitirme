@@ -1,14 +1,13 @@
 package com.example.screenmirror.ui
 
 import com.example.screenmirror.R
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.os.SystemClock
 import android.view.View
-import android.view.animation.LinearInterpolator
 import kotlin.math.min
 
 enum class Art { LINK, WIFI, FIVE_G, NEAR, ETHERNET, SCOPE, DRM }
@@ -17,30 +16,26 @@ enum class Art { LINK, WIFI, FIVE_G, NEAR, ETHERNET, SCOPE, DRM }
  * Tanıtım ve bağlanma ekranlarındaki çizimler. 320×220'lik tasarım kutusunda çizilir,
  * görünüme sığacak şekilde ölçeklenir; hafif bir döngü animasyonu vardır.
  */
-class Illustration(context: Context, private val art: Art) : View(context) {
+class Illustration(context: Context, private val art: Art, private val animate: Boolean = true) : View(context) {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val rect = RectF()
     private val path = Path()
-    private var phase = 0f
-    private var anim: ValueAnimator? = null
-
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        anim = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 2400
-            repeatCount = ValueAnimator.INFINITE
-            interpolator = LinearInterpolator()
-            addUpdateListener {
-                phase = it.animatedValue as Float
-                invalidate()
-            }
-            start()
+    private var phase = 0.3f
+    private val tick = object : Runnable {
+        override fun run() {
+            phase = (SystemClock.uptimeMillis() % 2400L) / 2400f
+            invalidate()
+            postDelayed(this, 66) // ~15 kare/sn: göz için yeter, telefon ekranını yansıtırken encoder'ı boşuna yormaz
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (animate) post(tick)
+    }
+
     override fun onDetachedFromWindow() {
-        anim?.cancel()
-        anim = null
+        removeCallbacks(tick)
         super.onDetachedFromWindow()
     }
 

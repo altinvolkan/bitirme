@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -36,7 +37,13 @@ type Listener interface {
 }
 
 // libVersion, AAR'in hangi kaynaktan uretildigini gosterir (arayuzde kontrol icin).
-const libVersion = "r5-smooth"
+const libVersion = "r6-light"
+
+func init() {
+	// Varsayilan %100 yerine %400: GC cok daha seyrek calisir (CPU/isi azalir), bellek
+	// birkac on MB daha fazla kullanilir. Akis verisi kisa omurlu cok parca uretir.
+	debug.SetGCPercent(400)
+}
 
 // Version AAR surumunu dondurur.
 func Version() string { return libVersion }

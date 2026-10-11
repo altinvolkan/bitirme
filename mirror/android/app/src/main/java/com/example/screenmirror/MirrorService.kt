@@ -84,8 +84,15 @@ class MirrorService : Service() {
             projection = proj
 
             // Wi-Fi güç tasarrufu paketleri toplu/geç gönderip ses-görüntü takılmasına yol açar
+            // LOW_LATENCY radyoyu en agresif modda tutar (en çok ısınan mod); yalnızca
+            // "Düşük" gecikme payında kullan, diğerlerinde HIGH_PERF yeter.
+            val lockMode = if (intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS) <= 150) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            }
             wifiLock = getSystemService(WifiManager::class.java)
-                .createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "screenmirror")
+                .createWifiLock(lockMode, "screenmirror")
                 .also { it.setReferenceCounted(false); it.acquire() }
 
             audioMuted = !intent.getBooleanExtra(EXTRA_AUDIO, true)
