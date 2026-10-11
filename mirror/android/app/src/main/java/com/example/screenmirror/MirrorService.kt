@@ -16,6 +16,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Display
 import android.view.Surface
 import androidx.core.content.IntentCompat
@@ -37,6 +38,8 @@ class MirrorService : Service() {
     private var backend: MirrorBackend? = null
     private var audio: AudioCapturer? = null
     private var wifiLock: WifiManager.WifiLock? = null
+    @Volatile private var audioMuted = false
+    private var bitrateBps = DEFAULT_BITRATE_MBPS * 1_000_000
 
     /** AirPlay modunda alıcının tuvali; 0 ise UDP modu. */
     private var canvasW = 0
@@ -60,6 +63,7 @@ class MirrorService : Service() {
         if (running) return START_NOT_STICKY
 
         startForegroundWithNotification()
+        MirrorEvents.reset()
 
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
         val data = IntentCompat.getParcelableExtra(intent, EXTRA_DATA, Intent::class.java)
@@ -84,6 +88,8 @@ class MirrorService : Service() {
                 .createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "screenmirror")
                 .also { it.setReferenceCounted(false); it.acquire() }
 
+            audioMuted = !intent.getBooleanExtra(EXTRA_AUDIO, true)
+            bitrateBps = intent.getIntExtra(EXTRA_BITRATE_MBPS, DEFAULT_BITRATE_MBPS) * 1_000_000
             val ok = when (intent.getStringExtra(EXTRA_MODE)) {
                 MODE_AIRPLAY -> startAirPlay(proj, intent)
                 else -> startUdp(proj, intent)
@@ -107,6 +113,11 @@ class MirrorService : Service() {
         val host = intent.getStringExtra(EXTRA_HOST) ?: return false
         val port = intent.getIntExtra(EXTRA_PORT, Protocol.DEFAULT_PORT)
         val (w, h) = targetSize()
+        LiveInfo.reset(host, MODE_UDP, 0, 0, 30)
+        LiveInfo.width = w
+        LiveInfo.height = h
+        LiveInfo.startedAtMs = SystemClock.elapsedRealtime()
+        MirrorEvents.status("streaming", host)
 
         val enc = arrayOfNulls<ScreenEncoder>(1)
         val snd = UdpVideoSender(host, port) { enc[0]?.requestKeyFrame() }
@@ -123,6 +134,10 @@ class MirrorService : Service() {
     private fun startAirPlay(proj: MediaProjection, intent: Intent): Boolean {
         val target = IntentCompat.getSerializableExtra(intent, EXTRA_TARGET, AirPlayTarget::class.java)
             ?: return false
+        LiveInfo.reset(
+            target.name, MODE_AIRPLAY, bitrateBps / 1_000_000,
+            intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS), AIRPLAY_FPS,
+        )
 
         val cb = object : MirrorBackend.Callbacks {
             override fun onCanvas(width: Int, height: Int) {
@@ -134,6 +149,9 @@ class MirrorService : Service() {
             }
 
             override fun onStatus(state: String, detail: String) {
+                if (state == "streaming" && LiveInfo.startedAtMs == 0L) {
+                    LiveInfo.startedAtMs = SystemClock.elapsedRealtime()
+                }
                 MirrorEvents.status(state, detail)
                 if (state == "error" || state == "stopped") main.post { stopSelf() }
             }
@@ -152,7 +170,7 @@ class MirrorService : Service() {
         }
         backend = b
         sink = b.sink
-        b.setAudioEnabled(hasAudioPermission())
+        b.setAudioEnabled(hasAudioPermission() && intent.getBooleanExtra(EXTRA_AUDIO, true))
         b.setLatencyMs(intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS))
         thread(name = "airplay-session", isDaemon = true) { b.run() }
         return true
@@ -163,9 +181,11 @@ class MirrorService : Service() {
         canvasW = w
         canvasH = h
         val (ew, eh) = targetSize()
+        LiveInfo.width = ew
+        LiveInfo.height = eh
         encoder = ScreenEncoder(
             proj, ew, eh, resources.displayMetrics.densityDpi, sink!!,
-            bitrate = AIRPLAY_BITRATE, fps = AIRPLAY_FPS,
+            bitrate = bitrateBps, fps = AIRPLAY_FPS,
         ).also { it.start() }
         watchRotation()
 
@@ -173,6 +193,7 @@ class MirrorService : Service() {
         if (s.wantsAudio) {
             val capturer = AudioCapturer(proj, s)
             if (capturer.start()) {
+                capturer.muted = audioMuted
                 audio = capturer
             } else {
                 MirrorEvents.status("audio", "Ses yakalanamadı; görüntü sessiz devam ediyor")
@@ -216,11 +237,19 @@ class MirrorService : Service() {
         if (w != enc.currentWidth || h != enc.currentHeight) {
             enc.resize(w, h)
             enc.requestKeyFrame()
+            LiveInfo.width = w
+            LiveInfo.height = h
         }
     }
 
     private fun hasAudioPermission() =
         checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+    /** Canlı yayında sesi kapat/aç (akış kesilmez). */
+    fun setAudioMuted(muted: Boolean) {
+        audioMuted = muted
+        audio?.muted = muted
+    }
 
     fun submitPin(pin: String) {
         backend?.submitPin(pin)
@@ -246,6 +275,7 @@ class MirrorService : Service() {
     }
 
     override fun onDestroy() {
+        if (MirrorEvents.lastState != "error") MirrorEvents.status("stopped", "")
         running = false
         instance = null
         getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
@@ -273,13 +303,15 @@ class MirrorService : Service() {
         const val EXTRA_PORT = "port"
         const val EXTRA_TARGET = "target"
         const val EXTRA_LATENCY_MS = "latencyMs"
+        const val EXTRA_BITRATE_MBPS = "bitrateMbps"
+        const val EXTRA_AUDIO = "audio"
+        const val DEFAULT_BITRATE_MBPS = 8
         const val DEFAULT_LATENCY_MS = 250
         const val MODE_UDP = "udp"
         const val MODE_AIRPLAY = "airplay"
         private const val CHANNEL_ID = "mirror"
         private const val NOTIF_ID = 1
         private const val MAX_SIDE = 1280 // UDP modunda uzun kenar; 720p sınıfı => düşük gecikme
-        private const val AIRPLAY_BITRATE = 8_000_000
         private const val AIRPLAY_FPS = 30
 
         @Volatile

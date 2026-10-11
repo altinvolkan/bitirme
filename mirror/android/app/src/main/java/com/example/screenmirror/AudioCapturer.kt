@@ -25,6 +25,9 @@ class AudioCapturer(
     private var record: AudioRecord? = null
     @Volatile private var running = false
 
+    /** true iken telefon sesi Apple TV'ye gönderilmez (sessiz örnek yollanır, akış bozulmaz). */
+    @Volatile var muted = false
+
     @SuppressLint("MissingPermission") // çağıran RECORD_AUDIO iznini kontrol eder
     fun start(): Boolean {
         val config = AudioPlaybackCaptureConfiguration.Builder(projection)
@@ -71,7 +74,10 @@ class AudioCapturer(
                     Log.w(TAG, "okuma boşluğu ${now - last} ms (#$gaps)")
                 }
                 last = now
-                if (n > 0) sink.sendAudio(buf, n) else if (n < 0) break
+                if (n > 0) {
+                    if (muted) java.util.Arrays.fill(buf, 0, n, 0)
+                    sink.sendAudio(buf, n)
+                } else if (n < 0) break
             }
         }
         return true

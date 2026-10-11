@@ -62,7 +62,12 @@ class AdsManager(private val activity: Activity) {
     /** Banner'ı [container] içine koyar (premium ise hiçbir şey yapmaz). */
     fun showBanner(container: ViewGroup) {
         if (Entitlements.premium || !sdkStarted.get()) return
-        if (banner != null) return
+        banner?.let { existing ->
+            (existing.parent as? ViewGroup)?.removeView(existing)
+            container.removeAllViews()
+            container.addView(existing)
+            return
+        }
         val view = AdView(activity).apply {
             adUnitId = BuildConfig.ADMOB_BANNER_ID
             setAdSize(AdSize.BANNER)
@@ -71,6 +76,11 @@ class AdsManager(private val activity: Activity) {
         }
         banner = view
         container.addView(view)
+    }
+
+    /** Ekran değişirken banner'ı yok etmeden ayırır. */
+    fun detachBanner() {
+        banner?.let { (it.parent as? ViewGroup)?.removeView(it) }
     }
 
     fun hideBanner(container: ViewGroup) {

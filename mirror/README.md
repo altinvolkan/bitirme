@@ -43,3 +43,13 @@ Xcode kullanmadan elle açacaksan: yeni tvOS App projesi oluştur, `Sources/*.sw
 - Şifreleme / eşleştirme yok: aynı ağdaki herkes porta yayın yapabilir. Kalıcı kullanım için PIN eşleştirme ekle.
 - Keyframe'ler tek seferde gönderilir (pacing yok); gerekirse paketler arası mikro-gecikme ekle.
 - Gecikmeyi ölçmek için: Android'de ekranda milisaniye sayacı göster, TV'yi telefonla aynı karede filme al.
+
+## Arayüz (v0.2)
+
+Ekranlar `android/app/src/main/java/com/example/screenmirror/ui/` altında programatik View olarak yazıldı
+(Ana, Eşleştirme, Bağlanıyor, Canlı, Ayarlar, Premium, Ekran bulunamadı, ilk açılış ipucu turu).
+
+- Yazı tipleri isteğe bağlı: `app/src/main/assets/fonts/Figtree.ttf` ve `BricolageGrotesque.ttf`
+  (değişken yazı tipi) koyulursa kullanılır, yoksa sistem yazı tipi.
+- Gizlilik politikası bağlantısı `MainActivity.PRIVACY_URL` içinde; yayından önce gerçek adresle değiştir.
+- IP ile bağlan: AirPlay kütüphanesi varsa 7000 portlu AirPlay cihazı, yoksa UDP alıcısı eklenir.

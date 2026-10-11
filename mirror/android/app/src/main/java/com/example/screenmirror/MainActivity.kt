@@ -2,266 +2,315 @@ package com.example.screenmirror
 
 import android.Manifest
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
+import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
-import android.view.Gravity
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.Spinner
-import android.widget.TextView
-import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
+import android.os.Handler
+import android.os.Looper
 import android.widget.FrameLayout
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import com.example.screenmirror.monetization.AdsManager
 import com.example.screenmirror.monetization.BillingManager
 import com.example.screenmirror.monetization.Entitlements
+import com.example.screenmirror.ui.C
+import com.example.screenmirror.ui.ConnectingScreen
+import com.example.screenmirror.ui.Device
+import com.example.screenmirror.ui.Fonts
+import com.example.screenmirror.ui.HomeScreen
+import com.example.screenmirror.ui.Kind
+import com.example.screenmirror.ui.LiveScreen
+import com.example.screenmirror.ui.MATCH
+import com.example.screenmirror.ui.NoDeviceScreen
+import com.example.screenmirror.ui.OnboardingScreen
+import com.example.screenmirror.ui.PairingScreen
+import com.example.screenmirror.ui.PremiumScreen
+import com.example.screenmirror.ui.Screen
+import com.example.screenmirror.ui.SettingsScreen
+import com.example.screenmirror.ui.UiPrefs
 
+/**
+ * Tek aktivite; ekranlar [Screen] sınıflarıdır (ui/ klasörü). Bu sınıf cihaz keşfi,
+ * yansıtma başlatma akışı ve servis durum olaylarını yönetir.
+ */
 class MainActivity : ComponentActivity() {
 
-    private lateinit var status: TextView
-    private lateinit var premiumButton: Button
-    private lateinit var bannerContainer: FrameLayout
-    private lateinit var ads: AdsManager
-    private lateinit var billing: BillingManager
-    private lateinit var hostField: EditText
-    private lateinit var udpButton: Button
-    private lateinit var airplayButton: Button
-    private lateinit var airplaySpinner: Spinner
-    private lateinit var latencySpinner: Spinner
-    private val latencyOptions = listOf(
-        "Düşük gecikme (~120 ms)" to 120,
-        "Dengeli (~250 ms)" to 250,
-        "Kararlı (~400 ms)" to 400,
-    )
-    private val airplayTargets = ArrayList<AirPlayTarget>()
-    private lateinit var airplayAdapter: ArrayAdapter<AirPlayTarget>
-    private var port = Protocol.DEFAULT_PORT
+    lateinit var prefs: UiPrefs
+        private set
+    lateinit var ads: AdsManager
+        private set
+    lateinit var billing: BillingManager
+        private set
+
+    /** Keşfedilen ve elle eklenen ekranlar. */
+    val devices = ArrayList<Device>()
+    var selected: Device? = null
+        private set
+
+    private val manual = ArrayList<Device>()
+    private val main = Handler(Looper.getMainLooper())
+    private lateinit var root: FrameLayout
+    private val stack = ArrayList<Screen>()
+    private val current: Screen? get() = stack.lastOrNull()
+
     private lateinit var udpDiscovery: TvDiscovery
     private lateinit var airplayDiscovery: AirPlayDiscovery
+    private var discovering = false
+    private val emptyCheck = Runnable {
+        if (devices.isEmpty() && current is HomeScreen && !MirrorService.running) show(NoDeviceScreen(this))
+    }
 
-    /** Ekran yakalama izninden sonra hangi modun başlatılacağı. */
-    private var pendingMode = MirrorService.MODE_UDP
+    /** Ekran yakalama izninden sonra başlatılacak hedef. */
+    private var pending: Device? = null
 
     private val capture = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        val dev = pending ?: return@registerForActivityResult
         if (r.resultCode != Activity.RESULT_OK || r.data == null) {
-            status.text = "Ekran yakalama izni verilmedi"
-            refreshButtons()
+            toast("Ekran yakalama izni verilmedi")
             return@registerForActivityResult
         }
         val svc = Intent(this, MirrorService::class.java)
             .putExtra(MirrorService.EXTRA_RESULT_CODE, r.resultCode)
             .putExtra(MirrorService.EXTRA_DATA, r.data)
-            .putExtra(MirrorService.EXTRA_MODE, pendingMode)
-            .putExtra(MirrorService.EXTRA_LATENCY_MS, latencyOptions[latencySpinner.selectedItemPosition].second)
-        if (pendingMode == MirrorService.MODE_AIRPLAY) {
-            val target = airplaySpinner.selectedItem as AirPlayTarget
-            svc.putExtra(MirrorService.EXTRA_TARGET, target)
-            status.text = "AirPlay: ${target.name} bağlanıyor…"
+            .putExtra(MirrorService.EXTRA_LATENCY_MS, prefs.latencyMs)
+            .putExtra(MirrorService.EXTRA_BITRATE_MBPS, prefs.bitrateMbps)
+            .putExtra(MirrorService.EXTRA_AUDIO, prefs.audio)
+        if (dev.kind == Kind.AIRPLAY) {
+            svc.putExtra(MirrorService.EXTRA_MODE, MirrorService.MODE_AIRPLAY)
+                .putExtra(MirrorService.EXTRA_TARGET, dev.airplay)
         } else {
-            val host = hostField.text.toString().trim()
-            svc.putExtra(MirrorService.EXTRA_HOST, host).putExtra(MirrorService.EXTRA_PORT, port)
-            status.text = "Yansıtılıyor → $host:$port"
+            svc.putExtra(MirrorService.EXTRA_MODE, MirrorService.MODE_UDP)
+                .putExtra(MirrorService.EXTRA_HOST, dev.ip)
+                .putExtra(MirrorService.EXTRA_PORT, dev.port)
         }
+        MirrorEvents.reset()
         startForegroundService(svc)
-        refreshButtons()
+        if (dev.kind == Kind.AIRPLAY) {
+            showFlow(ConnectingScreen(this, 0))
+        } else {
+            showFlow(LiveScreen(this))
+        }
     }
 
-    private val notifPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     /** Ses yakalama izni; reddedilse bile görüntü sessiz olarak devam eder. */
-    private val audioPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (!granted) status.text = "Ses izni verilmedi; görüntü sessiz yansıtılacak"
-            requestCapture()
-        }
+    private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted) toast("Ses izni verilmedi; görüntü sessiz yansıtılacak")
+        requestCapture()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        Fonts.init(this)
         Entitlements.load(this)
+        prefs = UiPrefs(this)
         ads = AdsManager(this)
-        billing = BillingManager(this) { refreshPremiumUi() }
+        billing = BillingManager(this) { current?.onPremiumChanged() }
 
-        val density = resources.displayMetrics.density
-        val pad = (24 * density).toInt()
-        val gap = (12 * density).toInt()
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(pad, pad * 2, pad, pad)
+        window.statusBarColor = C.BG
+        window.navigationBarColor = C.BG
+        root = FrameLayout(this).apply {
+            setBackgroundColor(C.BG)
+            fitsSystemWindows = true
         }
-        status = TextView(this).apply {
-            textSize = 16f
-            text = "Apple TV aranıyor…"
-        }
-        root.addView(status)
+        setContentView(root, FrameLayout.LayoutParams(MATCH, MATCH))
 
-        // --- AirPlay (doğrudan Apple TV) ---
-        val airplayLabel = TextView(this).apply {
-            textSize = 14f
-            setPadding(0, gap * 2, 0, 0)
-            text = if (AirPlayBackendLoader.available) "AirPlay (Apple TV'ye doğrudan) · lib ${AirPlayBackendLoader.version()}"
-            else "AirPlay kapalı: airplay.aar yok (mirror/airplay-go/README.md)"
-        }
-        airplayAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, airplayTargets)
-        airplaySpinner = Spinner(this).apply { adapter = airplayAdapter }
-        airplayButton = Button(this).apply { setOnClickListener { onAirPlayButton() } }
-        val prefs = getSharedPreferences("ui", Context.MODE_PRIVATE)
-        latencySpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(
-                this@MainActivity, android.R.layout.simple_spinner_dropdown_item, latencyOptions.map { it.first },
-            )
-            setSelection(prefs.getInt("latency_idx", 1).coerceIn(0, latencyOptions.lastIndex))
-            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    prefs.edit().putInt("latency_idx", position).apply()
-                }
-
-                override fun onNothingSelected(parent: AdapterView<*>?) {}
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                current?.onBack() ?: finish()
             }
-        }
-        root.addView(airplayLabel)
-        if (AirPlayBackendLoader.available) {
-            root.addView(airplaySpinner)
-            root.addView(latencySpinner)
-            root.addView(airplayButton)
-        }
-
-        // --- Kendi tvOS alıcımız (UDP) ---
-        val udpLabel = TextView(this).apply {
-            textSize = 14f
-            setPadding(0, gap * 2, 0, 0)
-            text = "Kendi tvOS alıcımız (UDP)"
-        }
-        hostField = EditText(this).apply {
-            hint = "Apple TV IP (otomatik dolar, gerekirse elle gir)"
-            inputType = InputType.TYPE_CLASS_PHONE
-        }
-        udpButton = Button(this).apply { setOnClickListener { onUdpButton() } }
-        root.addView(udpLabel)
-        root.addView(hostField)
-        root.addView(udpButton)
-
-        // --- Reklamsız abonelik ---
-        premiumButton = Button(this).apply {
-            setPadding(0, gap, 0, gap)
-            setOnClickListener {
-                if (Entitlements.premium) billing.manageSubscription(this@MainActivity)
-                else billing.launchPurchase(this@MainActivity)
-            }
-        }
-        val restore = Button(this).apply {
-            text = "Satın alımı geri yükle"
-            setOnClickListener { billing.refresh() }
-        }
-        root.addView(premiumButton)
-        root.addView(restore)
-
-        // Banner alanı en altta
-        bannerContainer = FrameLayout(this)
-        val frame = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        frame.addView(root, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
-        frame.addView(bannerContainer, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        setContentView(frame)
+        })
 
         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
 
-        udpDiscovery = TvDiscovery(this) { name, host, p ->
-            port = p
-            if (host != null) {
-                hostField.setText(host)
-                status.text = "Bulundu: $name ($host:$p)"
-            } else {
-                status.text = "Bulundu: $name ama IPv4 çözülemedi; TV ekranındaki IP'yi elle gir"
-            }
+        udpDiscovery = TvDiscovery(this) { name, host, port ->
+            if (host != null) addDevice(Device(Kind.UDP, name, "Kendi alıcımız", host, port))
         }
         airplayDiscovery = AirPlayDiscovery(this) { t ->
-            if (airplayTargets.none { it.ip == t.ip }) {
-                airplayTargets.add(t)
-                airplayAdapter.notifyDataSetChanged()
-                refreshButtons()
-            }
+            addDevice(Device(Kind.AIRPLAY, t.name, subtitleFor(t.txt), t.ip, t.port, t))
         }
-        refreshButtons()
-        refreshPremiumUi()
+
+        if (prefs.onboarded) show(HomeScreen(this)) else show(OnboardingScreen(this))
         billing.start()
-        ads.start { refreshPremiumUi() }
+        ads.start { current?.onPremiumChanged() }
     }
 
     override fun onStart() {
         super.onStart()
-        udpDiscovery.start()
-        if (AirPlayBackendLoader.available) airplayDiscovery.start()
-        MirrorEvents.onStatus = { state, detail -> showAirPlayState(state, detail) }
-        MirrorEvents.onPinRequired = { askPin() }
+        startDiscovery()
+        MirrorEvents.onStatus = { state, detail -> handleStatus(state, detail) }
+        MirrorEvents.onPinRequired = { showPin() }
     }
 
     override fun onStop() {
         MirrorEvents.onStatus = null
         MirrorEvents.onPinRequired = null
-        udpDiscovery.stop()
-        if (AirPlayBackendLoader.available) airplayDiscovery.stop()
+        stopDiscovery()
         super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
-        refreshButtons()
         billing.refresh()
+        syncWithService()
     }
 
     override fun onDestroy() {
+        main.removeCallbacks(emptyCheck)
         ads.destroy()
         billing.end()
         super.onDestroy()
     }
 
-    /** Premium durumuna göre banner ve abonelik düğmesini günceller. */
-    private fun refreshPremiumUi() {
-        if (Entitlements.premium) {
-            ads.hideBanner(bannerContainer)
-            premiumButton.text = "Premium aktif ✓ (aboneliği yönet)"
+    // --- ekran yığını ---
+
+    fun show(screen: Screen, push: Boolean = true) {
+        current?.onHidden()
+        if (!push && stack.isNotEmpty()) stack.removeAt(stack.lastIndex)
+        stack.add(screen)
+        display(screen)
+    }
+
+    private fun display(screen: Screen) {
+        screen.view = screen.build()
+        root.removeAllViews()
+        root.addView(screen.view, FrameLayout.LayoutParams(MATCH, MATCH))
+        screen.onShown()
+    }
+
+    fun back() {
+        if (stack.size <= 1) return finish()
+        current?.onHidden()
+        stack.removeAt(stack.lastIndex)
+        display(stack.last())
+    }
+
+    fun goHome() {
+        current?.onHidden()
+        stack.clear()
+        val home = HomeScreen(this)
+        stack.add(home)
+        display(home)
+        scheduleEmptyCheck()
+    }
+
+    fun finishApp() = finish()
+
+    private fun inFlow() = current is ConnectingScreen || current is PairingScreen || current is LiveScreen
+
+    /** Bağlanma/eşleştirme/canlı akışındaki ekranı değiştirir (yığına eklemeden). */
+    private fun showFlow(screen: Screen) = show(screen, push = !inFlow())
+
+    fun openSettings() = show(SettingsScreen(this))
+    fun openPremium() = show(PremiumScreen(this))
+    fun openNoDevice() = show(NoDeviceScreen(this))
+    fun openOnboarding() = show(OnboardingScreen(this, fromSettings = true))
+
+    fun openPrivacy() {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL)))
+        } catch (_: Exception) {
+            toast("Gizlilik politikası bağlantısı açılamadı")
+        }
+    }
+
+    fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
+    fun versionName(): String = try {
+        packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+    } catch (_: Exception) {
+        ""
+    }
+
+    // --- cihazlar ---
+
+    private fun subtitleFor(txt: String): String {
+        val model = txt.lineSequence().firstOrNull { it.startsWith("model=") }?.substringAfter('=') ?: ""
+        return when {
+            model.startsWith("AppleTV6,2") || model.startsWith("AppleTV11,1") || model.startsWith("AppleTV14,1") -> "Apple TV 4K"
+            model.startsWith("AppleTV") -> "Apple TV"
+            else -> "AirPlay alıcısı"
+        }
+    }
+
+    private fun addDevice(d: Device) {
+        if (devices.any { it.key == d.key }) return
+        devices.add(d)
+        if (selected == null || d.key == prefs.lastDeviceKey) selected = d
+        current?.onDevicesChanged()
+    }
+
+    fun select(d: Device) {
+        selected = d
+        prefs.lastDeviceKey = d.key
+    }
+
+    private fun startDiscovery() {
+        if (discovering) return
+        discovering = true
+        udpDiscovery.start()
+        if (AirPlayBackendLoader.available) airplayDiscovery.start()
+        scheduleEmptyCheck()
+    }
+
+    private fun stopDiscovery() {
+        if (!discovering) return
+        discovering = false
+        udpDiscovery.stop()
+        if (AirPlayBackendLoader.available) airplayDiscovery.stop()
+        main.removeCallbacks(emptyCheck)
+    }
+
+    private fun scheduleEmptyCheck() {
+        main.removeCallbacks(emptyCheck)
+        if (devices.isEmpty()) main.postDelayed(emptyCheck, 8000)
+    }
+
+    fun rescan() {
+        stopDiscovery()
+        devices.clear()
+        devices.addAll(manual)
+        if (selected != null && devices.none { it.key == selected?.key }) selected = devices.firstOrNull()
+        startDiscovery()
+        goHome()
+    }
+
+    fun connectManual(ip: String) {
+        if (!Regex("""\d{1,3}(\.\d{1,3}){3}""").matches(ip)) {
+            toast("Geçerli bir IP adresi yaz (ör. 192.168.1.118)")
+            return
+        }
+        val d = if (AirPlayBackendLoader.available) {
+            Device(Kind.AIRPLAY, ip, "AirPlay alıcısı", ip, 7000, AirPlayTarget(ip, ip, 7000, ""))
         } else {
-            ads.showBanner(bannerContainer)
-            val price = billing.priceText?.let { " – $it/ay" } ?: ""
-            premiumButton.text = "Reklamsız kullan$price"
+            Device(Kind.UDP, ip, "Kendi alıcımız", ip, Protocol.DEFAULT_PORT)
         }
+        if (manual.none { it.key == d.key }) manual.add(d)
+        if (devices.none { it.key == d.key }) devices.add(d)
+        select(d)
+        goHome()
     }
 
-    private fun onUdpButton() {
-        if (MirrorService.running) return stopService()
-        if (hostField.text.isNullOrBlank()) {
-            status.text = "Önce Apple TV IP'sini gir veya bulunmasını bekle"
-            return
-        }
-        pendingMode = MirrorService.MODE_UDP
-        ads.showInterstitialThen { requestCapture() }
-    }
+    // --- yansıtma akışı ---
 
-    private fun onAirPlayButton() {
-        if (MirrorService.running) return stopService()
-        if (airplayTargets.isEmpty()) {
-            status.text = "AirPlay cihazı bulunamadı; aynı Wi-Fi'da mısın?"
+    fun startMirror() {
+        val d = selected
+        if (d == null) {
+            toast("Önce bir ekran seç")
             return
         }
-        pendingMode = MirrorService.MODE_AIRPLAY
+        if (MirrorService.running) return syncWithService()
+        pending = d
         ads.showInterstitialThen {
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                requestCapture()
-            } else {
-                audioPermission.launch(Manifest.permission.RECORD_AUDIO)
-            }
+            val needAudio = d.kind == Kind.AIRPLAY && prefs.audio &&
+                checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+            if (needAudio) audioPermission.launch(Manifest.permission.RECORD_AUDIO) else requestCapture()
         }
     }
 
@@ -270,47 +319,66 @@ class MainActivity : ComponentActivity() {
         capture.launch(mpm.createScreenCaptureIntent())
     }
 
-    private fun stopService() {
+    fun stopMirror() {
         startService(Intent(this, MirrorService::class.java).setAction(MirrorService.ACTION_STOP))
-        status.text = "Durduruldu"
-        udpButton.postDelayed({ refreshButtons() }, 300)
+        goHome()
     }
 
-    private fun showAirPlayState(state: String, detail: String) {
-        status.text = when (state) {
-            "connecting" -> "AirPlay: bağlanıyor… $detail"
-            "pairing" -> "AirPlay: eşleştiriliyor…"
-            "setup" -> "AirPlay: yayın kuruluyor…"
-            "streaming" -> "AirPlay: yansıtılıyor → $detail"
-            "audio" -> "AirPlay: yansıtılıyor (ses: $detail)"
-            "error" -> "AirPlay hatası: $detail"
-            else -> "Durduruldu"
+    fun submitPin(pin: String) {
+        MirrorService.instance?.submitPin(pin)
+        showFlow(ConnectingScreen(this, 1))
+    }
+
+    fun cancelPin() {
+        MirrorService.instance?.submitPin("")
+        stopMirror()
+    }
+
+    private fun showPin() {
+        if (current is PairingScreen) return
+        showFlow(PairingScreen(this, LiveInfo.deviceName.ifEmpty { selected?.name ?: "Apple TV" }))
+    }
+
+    private fun handleStatus(state: String, detail: String) {
+        when (state) {
+            "connecting" -> stage(0)
+            "pairing" -> stage(1)
+            "setup" -> stage(2)
+            "streaming" -> if (current !is LiveScreen) showFlow(LiveScreen(this))
+            "audio" -> toast(detail)
+            "error" -> {
+                toast("Bağlanılamadı: $detail")
+                if (inFlow()) goHome()
+            }
+            "stopped" -> if (inFlow()) goHome()
         }
-        refreshButtons()
     }
 
-    /** Apple TV ekranında gösterilen PIN'i kullanıcıdan alır. */
-    private fun askPin() {
-        val input = EditText(this).apply {
-            hint = "Apple TV'deki kod"
-            inputType = InputType.TYPE_CLASS_NUMBER
+    private fun stage(n: Int) {
+        val c = current
+        when {
+            c is PairingScreen -> {} // kod girilene kadar bekle
+            c is ConnectingScreen -> c.setStage(n)
+            else -> showFlow(ConnectingScreen(this, n))
         }
-        AlertDialog.Builder(this)
-            .setTitle("Eşleştirme kodu")
-            .setMessage("Apple TV ekranında görünen kodu gir")
-            .setView(input)
-            .setCancelable(false)
-            .setPositiveButton("Tamam") { _, _ -> MirrorService.instance?.submitPin(input.text.toString().trim()) }
-            .setNegativeButton("İptal") { _, _ -> MirrorService.instance?.submitPin("") }
-            .show()
     }
 
-    private fun refreshButtons() {
-        val running = MirrorService.running
-        udpButton.text = if (running) "Durdur" else "Yansıtmayı başlat (UDP)"
-        airplayButton.text = if (running) "Durdur" else "AirPlay ile yansıt"
-        val hasAirPlay = airplayTargets.isNotEmpty()
-        airplayButton.isEnabled = running || hasAirPlay
-        airplaySpinner.visibility = if (hasAirPlay) View.VISIBLE else View.GONE
+    /** Uygulama arka plandan dönünce arayüzü servisin gerçek durumuna getirir. */
+    private fun syncWithService() {
+        if (!MirrorService.running) {
+            if (inFlow() && MirrorEvents.lastState != "") goHome()
+            return
+        }
+        when {
+            LiveInfo.startedAtMs > 0 -> if (current !is LiveScreen) showFlow(LiveScreen(this))
+            MirrorEvents.pinPending -> showPin()
+            current is ConnectingScreen || current is PairingScreen -> {}
+            else -> showFlow(ConnectingScreen(this, 0))
+        }
+    }
+
+    companion object {
+        /** Play Console'da zorunlu; yayınlamadan önce gerçek adresle değiştir (docs/PRIVACY_POLICY.md). */
+        const val PRIVACY_URL = "https://example.com/yansit/gizlilik"
     }
 }
