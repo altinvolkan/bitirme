@@ -1,0 +1,10 @@
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+tvos/*.xcodeproj/
+tvos/Config/Info.plist
+xcuserdata/
+DerivedData/
+.DS_Store

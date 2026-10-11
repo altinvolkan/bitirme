@@ -1,0 +1,26 @@
+# XcodeGen şablonu:  brew install xcodegen && cd mirror/tvos && xcodegen
+# Sonra ScreenMirrorTV.xcodeproj'u aç, Signing & Capabilities'den Team seç.
+name: ScreenMirrorTV
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    tvOS: "16.0"
+targets:
+  ScreenMirrorTV:
+    type: application
+    platform: tvOS
+    sources:
+      - Sources
+    info:
+      path: Config/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSLocalNetworkUsageDescription: "Android cihazından gelen ekran görüntüsünü almak için yerel ağ gerekir."
+        NSBonjourServices:
+          - _scrmirror._udp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.ScreenMirrorTV
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
