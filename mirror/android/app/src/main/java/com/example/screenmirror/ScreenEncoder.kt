@@ -87,7 +87,12 @@ class ScreenEncoder(
                 setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
                 // Baseline: B-frame / reorder yok => ekstra gecikme yok
                 setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
-                setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel41)
+                // Level 4.1 en çok 50 Mbps'ye izin verir; daha yüksek bit hızında 5.1 bildir
+                setInteger(
+                    MediaFormat.KEY_LEVEL,
+                    if (bitrate > 50_000_000) MediaCodecInfo.CodecProfileLevel.AVCLevel51
+                    else MediaCodecInfo.CodecProfileLevel.AVCLevel41,
+                )
                 setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0)
                 setInteger(MediaFormat.KEY_PRIORITY, 0) // realtime
                 setInteger("low-latency", 1) // KEY_LOW_LATENCY (API 30); desteklemeyen encoder yok sayar
