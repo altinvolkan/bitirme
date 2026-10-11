@@ -18,6 +18,7 @@ Run go get golang.org/x/mobile/bind
 
 New-Item -ItemType Directory -Force ..\android\app\libs | Out-Null
 $targets = if ($env:TARGETS) { $env:TARGETS } else { 'android/arm64' }
-Run gomobile bind "-target=$targets" -androidapi 30 -o ..\android\app\libs\airplay.aar screenmirror/airplay/sender
+# 16 KB sayfa hizasi (Play gereksinimi); NDK r28+ zaten varsayilan, ldflags eski NDK icin
+Run gomobile bind "-target=$targets" -androidapi 30 "-ldflags=-extldflags=-Wl,-z,max-page-size=16384" -o ..\android\app\libs\airplay.aar screenmirror/airplay/sender
 
 Write-Host "Uretildi: mirror\android\app\libs\airplay.aar (Android Studio'da Gradle sync yapin)"

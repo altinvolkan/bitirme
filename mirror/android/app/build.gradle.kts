@@ -25,16 +25,16 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.example.screenmirror"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
-        // YAYIN ÖNCESİ: benzersiz bir paket adıyla değiştirin (örn. com.sirketiniz.ekranyansit);
-        // Play'de yayınlandıktan sonra değiştirilemez. Bkz. mirror/docs/PLAY_STORE_ROADMAP.md
+        // Play'de yayınlandıktan sonra değiştirilemez.
         applicationId = "com.altinvolkan.imirror"
         minSdk = 30
-        targetSdk = 34 // Play yeni yüklemeler için daha yeni hedef ister; yol haritası Faz 1
-        versionCode = 2
-        versionName = "0.2"
+        targetSdk = 36 // Play, 31 Ağustos 2026'dan beri yeni uygulamalarda API 36 hedefi ister
+        // Her Play yüklemesinde versionCode'u artır (aynı kodla ikinci yükleme reddedilir)
+        versionCode = 1
+        versionName = "1.0.0"
         manifestPlaceholders["admobAppId"] = admobAppId
         buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
         buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"$admobInterstitialId\"")
@@ -43,6 +43,17 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    bundle {
+        // Tüm diller AAB'de kalsın: Android 13+ uygulama başına dil seçimi de çalışsın
+        language { enableSplit = false }
+    }
+
+    lint {
+        // İlk yayın derlemesini lint uyarıları engellemesin; sorunlar Android Studio'da yine görünür
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     signingConfigs {
@@ -62,6 +73,8 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfigs.findByName("release")?.let { signingConfig = it }
+            // Play, yerel (Go) kitaplığın sembol tablosunu ister (çökme raporları için)
+            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
         }
     }
 
@@ -86,5 +99,22 @@ dependencies {
     implementation("com.google.android.gms:play-services-ads:23.6.0") // UMP onay SDK'sı dahildir
     if (airplayAar.exists()) {
         implementation(files(airplayAar))
+    }
+}
+
+// Yayın derlemesinden önce güvenlik kontrolleri
+tasks.configureEach {
+    if (name == "bundleRelease" || name == "assembleRelease") {
+        doFirst {
+            check(keystoreProps.containsKey("storeFile")) {
+                "keystore.properties yok: mirror\\android\\tools\\new-upload-key.ps1 betiğini çalıştır (docs/RELEASE.md)"
+            }
+            if (admobAppId.startsWith("ca-app-pub-3940256099942544")) {
+                logger.warn("UYARI: AdMob TEST kimlikleri kullanılıyor. Gerçek kimlikleri ~/.gradle/gradle.properties içine yaz (docs/RELEASE.md).")
+            }
+            if (!airplayAar.exists()) {
+                logger.warn("UYARI: app/libs/airplay.aar yok; AAB'de AirPlay çalışmaz (yalnızca UDP modu).")
+            }
+        }
     }
 }
