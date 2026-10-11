@@ -57,7 +57,7 @@ class UiPrefs(context: Context) {
 
     companion object {
         val LATENCIES = listOf(R.string.latency_low to 120, R.string.latency_balanced to 250, R.string.latency_stable to 400)
-        val BITRATES = listOf(4, 8, 12, 16, 32, 64)
+        val BITRATES = listOf(4, 8, 12)
     }
 }
 
