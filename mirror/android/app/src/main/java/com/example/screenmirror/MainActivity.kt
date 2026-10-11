@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -35,6 +36,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var udpButton: Button
     private lateinit var airplayButton: Button
     private lateinit var airplaySpinner: Spinner
+    private lateinit var latencySpinner: Spinner
+    private val latencyOptions = listOf(
+        "Düşük gecikme (~120 ms)" to 120,
+        "Dengeli (~250 ms)" to 250,
+        "Kararlı (~400 ms)" to 400,
+    )
     private val airplayTargets = ArrayList<AirPlayTarget>()
     private lateinit var airplayAdapter: ArrayAdapter<AirPlayTarget>
     private var port = Protocol.DEFAULT_PORT
@@ -54,6 +61,7 @@ class MainActivity : ComponentActivity() {
             .putExtra(MirrorService.EXTRA_RESULT_CODE, r.resultCode)
             .putExtra(MirrorService.EXTRA_DATA, r.data)
             .putExtra(MirrorService.EXTRA_MODE, pendingMode)
+            .putExtra(MirrorService.EXTRA_LATENCY_MS, latencyOptions[latencySpinner.selectedItemPosition].second)
         if (pendingMode == MirrorService.MODE_AIRPLAY) {
             val target = airplaySpinner.selectedItem as AirPlayTarget
             svc.putExtra(MirrorService.EXTRA_TARGET, target)
@@ -102,15 +110,30 @@ class MainActivity : ComponentActivity() {
         val airplayLabel = TextView(this).apply {
             textSize = 14f
             setPadding(0, gap * 2, 0, 0)
-            text = if (AirPlayBackendLoader.available) "AirPlay (Apple TV'ye doğrudan)"
+            text = if (AirPlayBackendLoader.available) "AirPlay (Apple TV'ye doğrudan) · lib ${AirPlayBackendLoader.version()}"
             else "AirPlay kapalı: airplay.aar yok (mirror/airplay-go/README.md)"
         }
         airplayAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, airplayTargets)
         airplaySpinner = Spinner(this).apply { adapter = airplayAdapter }
         airplayButton = Button(this).apply { setOnClickListener { onAirPlayButton() } }
+        val prefs = getSharedPreferences("ui", Context.MODE_PRIVATE)
+        latencySpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@MainActivity, android.R.layout.simple_spinner_dropdown_item, latencyOptions.map { it.first },
+            )
+            setSelection(prefs.getInt("latency_idx", 1).coerceIn(0, latencyOptions.lastIndex))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    prefs.edit().putInt("latency_idx", position).apply()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
         root.addView(airplayLabel)
         if (AirPlayBackendLoader.available) {
             root.addView(airplaySpinner)
+            root.addView(latencySpinner)
             root.addView(airplayButton)
         }
 

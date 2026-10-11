@@ -61,5 +61,12 @@ class AirPlayBackend(
         session.setAudioEnabled(on)
     }
 
+    override fun setLatencyMs(ms: Int) = Sender.setLatencyMs(ms.toLong())
+
     override fun stop() = session.stop()
+
+    companion object {
+        @JvmStatic
+        fun version(): String = Sender.version()
+    }
 }

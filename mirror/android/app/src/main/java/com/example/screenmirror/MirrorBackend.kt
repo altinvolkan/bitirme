@@ -22,6 +22,9 @@ interface MirrorBackend {
     fun run()
     fun submitPin(pin: String)
     fun setAudioEnabled(on: Boolean)
+
+    /** Alıcı tampon payı (ms). Wi-Fi için 200+ önerilir. */
+    fun setLatencyMs(ms: Int)
     fun stop()
 }
 
@@ -35,6 +38,13 @@ object AirPlayBackendLoader {
         } catch (_: Throwable) {
             false
         }
+
+    /** airplay.aar'ın sürüm etiketi; kütüphane yoksa "yok". */
+    fun version(): String = try {
+        Class.forName(CLASS_NAME).getMethod("version").invoke(null) as String
+    } catch (_: Throwable) {
+        "yok"
+    }
 
     fun create(target: AirPlayTarget, savedCreds: String, cb: MirrorBackend.Callbacks): MirrorBackend? = try {
         Class.forName(CLASS_NAME)

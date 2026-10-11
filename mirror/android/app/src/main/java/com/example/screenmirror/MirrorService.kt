@@ -153,6 +153,7 @@ class MirrorService : Service() {
         backend = b
         sink = b.sink
         b.setAudioEnabled(hasAudioPermission())
+        b.setLatencyMs(intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS))
         thread(name = "airplay-session", isDaemon = true) { b.run() }
         return true
     }
@@ -271,6 +272,8 @@ class MirrorService : Service() {
         const val EXTRA_HOST = "host"
         const val EXTRA_PORT = "port"
         const val EXTRA_TARGET = "target"
+        const val EXTRA_LATENCY_MS = "latencyMs"
+        const val DEFAULT_LATENCY_MS = 250
         const val MODE_UDP = "udp"
         const val MODE_AIRPLAY = "airplay"
         private const val CHANNEL_ID = "mirror"

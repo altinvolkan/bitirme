@@ -35,6 +35,18 @@ type Listener interface {
 	OnCredentials(deviceID string, json string)
 }
 
+// libVersion, AAR'in hangi kaynaktan uretildigini gosterir (arayuzde kontrol icin).
+const libVersion = "r4-latency"
+
+// Version AAR surumunu dondurur.
+func Version() string { return libVersion }
+
+// SetLatencyMs, alicinin ses ve goruntu icin ayirdigi tampon payidir (ms).
+// Upstream bunu agin kablolu/kablosuz olduguna bakarak secer; Android 11+ ag arayuzu
+// listelemeyi yasakladigindan hep kablolu (ses 85 ms) varsayar. Telefon Wi-Fi'inda
+// 200+ ms gerekir; yoksa paketler gec kalir ve ses patlar. 0 = otomatik.
+func SetLatencyMs(ms int) { airplay.SetTargetLatency(time.Duration(ms) * time.Millisecond) }
+
 // SetDebug protokol ayrintili loglarini acar (stderr / logcat).
 func SetDebug(on bool) { airplay.SetDebugMode(on) }
 
