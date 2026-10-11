@@ -26,11 +26,15 @@ def glyph(d, ox, oy, k, accent=ACCENT, bg=BG):
         return ox + x * k, oy + y * k
 
     def stroke(pts, w):
+        """Kalın çizgi: yol boyunca sık daireler (köşe artefaktı olmaz)."""
         pp = [P(*p) for p in pts]
-        wk = max(1, int(w * SC * k))
-        d.line(pp, fill=accent, width=wk, joint="curve")
-        for p in (pp[0], pp[-1]):
-            d.ellipse([p[0] - wk / 2, p[1] - wk / 2, p[0] + wk / 2, p[1] + wk / 2], fill=accent)
+        wk = max(1.0, w * SC * k)
+        for (x0, y0), (x1, y1) in zip(pp, pp[1:]):
+            n = max(1, int(math.hypot(x1 - x0, y1 - y0) / (wk * 0.2)))
+            for i in range(n + 1):
+                x = x0 + (x1 - x0) * i / n
+                y = y0 + (y1 - y0) * i / n
+                d.ellipse([x - wk / 2, y - wk / 2, x + wk / 2, y + wk / 2], fill=accent)
 
     # ekran: alt kenar 43'ten başlar, sol kenar 47'de biter (telefona yer açılır)
     r = 7
@@ -55,13 +59,53 @@ def glyph(d, ox, oy, k, accent=ACCENT, bg=BG):
     ph += arc_pts(25.5, 57, r, 180, 270)[1:]
     stroke(ph, 4)
     stroke([(27.5, 57.5), (31.5, 57.5)], 2.2)
-    # yayın üçgeni
-    tri = [P(54, 35), P(46, 51), P(62, 51)]
-    d.polygon(tri, fill=accent)
-    wk = int(3 * SC * k)
-    d.line(tri + [tri[0]], fill=accent, width=wk, joint="curve")
-    for p in tri:
-        d.ellipse([p[0] - wk / 2, p[1] - wk / 2, p[0] + wk / 2, p[1] + wk / 2], fill=accent)
+    # telefonda ve ekranda aynı görsel: kırmızı, ısırılmamış elma
+    apple(d, P, 54, 45, 1.05, k)
+    apple(d, P, 29.5, 69, 0.62, k)
+
+
+RED = (229, 72, 77)
+LEAF = (61, 214, 140)
+STEM = (160, 105, 59)
+SHINE = (240, 130, 134)
+
+
+def cubic(p0, p1, p2, p3, n=18):
+    out = []
+    for i in range(n + 1):
+        t = i / n
+        u = 1 - t
+        out.append((u**3 * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t**3 * p3[0],
+                    u**3 * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t**3 * p3[1]))
+    return out
+
+
+def apple(d, P, cx, cy, sc, k):
+    def T(p):
+        return P(cx + p[0] * sc, cy + p[1] * sc)
+
+    body = []
+    segs = [((0, -4.5), (-1.5, -6.2), (-7.5, -6.5), (-7.5, 0)),
+            ((-7.5, 0), (-7.5, 5), (-4, 8), (-2.5, 8)),
+            ((-2.5, 8), (-1.2, 8), (-0.8, 7.4), (0, 7.4)),
+            ((0, 7.4), (0.8, 7.4), (1.2, 8), (2.5, 8)),
+            ((2.5, 8), (4, 8), (7.5, 5), (7.5, 0)),
+            ((7.5, 0), (7.5, -6.5), (1.5, -6.2), (0, -4.5))]
+    for sg in segs:
+        body += cubic(*sg)
+    d.polygon([T(p) for p in body], fill=RED)
+    # parlama
+    cxs, cys = -3.8, -1.2
+    sh = [(cxs + 1.0 * math.cos(t / 20 * 2 * math.pi), cys + 2.2 * math.sin(t / 20 * 2 * math.pi)) for t in range(20)]
+    d.polygon([T(p) for p in sh], fill=SHINE)
+    # sap
+    st = cubic((-0.3, -4.4), (-0.3, -6), (0, -7), (0.7, -8.3))
+    w = max(1, int(1.1 * sc * SC * k))
+    pts = [T(p) for p in st]
+    d.line(pts, fill=STEM, width=w, joint="curve")
+    # yaprak
+    leaf = cubic((0.8, -5.4), (1.8, -8.6), (5, -9.4), (7, -8.6)) + cubic((7, -8.6), (6.4, -6), (3.6, -4.4), (0.8, -5.4))
+    d.polygon([T(p) for p in leaf], fill=LEAF)
 
 
 def icon(size, glyph_scale):

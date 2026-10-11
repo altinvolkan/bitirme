@@ -57,5 +57,5 @@ Ekranlar `android/app/src/main/java/com/example/screenmirror/ui/` altında progr
 ## Marka: iMirror
 
 - Uygulama kimliği (applicationId): `com.altinvolkan.imirror` (kod paketi `com.example.screenmirror` olarak kaldı; Play'e yüklenen yalnızca applicationId'dir).
-- Simge: büyük ekran + sol altta telefon + yayın üçgeni (jenerik; üçüncü taraf logosu yok); `android/app/src/main/res/drawable/ic_launcher_*.xml`.
+- Simge: büyük ekran + sol altta telefon; ikisinde de aynı kırmızı elma görseli; `android/app/src/main/res/drawable/ic_launcher_*.xml`.
 - Mağaza görselleri: `store-assets/` (`python make_assets.py` ile yeniden üretilir): 512×512 simge ve 1024×500 öne çıkan grafik.
