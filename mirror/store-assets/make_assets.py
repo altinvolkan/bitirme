@@ -8,24 +8,60 @@ LINE2 = (58, 64, 76)
 SS = 4  # süper örnekleme
 
 
-def glyph(d, ox, oy, k, accent=ACCENT, bg=BG, dot=False):
-    """108'lik tasarım kutusundaki logo: ekran çerçevesi + yukarı bakan üçgen (yayın)."""
+import math
+
+SC = 0.8  # tasarım kutusunda güvenli bölgeye sığdırmak için ölçek
+
+
+def arc_pts(cx, cy, r, a0, a1, n=24):
+    return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)),
+             cy + r * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
+
+
+def glyph(d, ox, oy, k, accent=ACCENT, bg=BG):
+    """108'lik kutuda: büyük ekran + sol altta telefon (ekranın sol alt köşesini kapatır) + ekranda yayın üçgeni."""
     def P(x, y):
+        x = 54 + (x - 54) * SC
+        y = 54 + (y - 54) * SC
         return ox + x * k, oy + y * k
 
-    x0, y0 = P(28, 28)
-    x1, y1 = P(80, 62)
-    d.rounded_rectangle([x0, y0, x1, y1], radius=9 * k, outline=accent, width=int(5 * k))
-    tri = [P(54, 67.5), P(43.5, 80.5), P(64.5, 80.5), P(54, 67.5)]
-    d.polygon(tri[:3], fill=accent)
-    d.line(tri, fill=accent, width=int(3 * k), joint="curve")
-    for p in tri[:3]:
-        r = 1.5 * k
-        d.ellipse([p[0] - r, p[1] - r, p[0] + r, p[1] + r], fill=accent)
-    if dot:
-        cx, cy = P(54, 45)
-        r = 4.6 * k
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=accent)
+    def stroke(pts, w):
+        pp = [P(*p) for p in pts]
+        wk = max(1, int(w * SC * k))
+        d.line(pp, fill=accent, width=wk, joint="curve")
+        for p in (pp[0], pp[-1]):
+            d.ellipse([p[0] - wk / 2, p[1] - wk / 2, p[0] + wk / 2, p[1] + wk / 2], fill=accent)
+
+    # ekran: alt kenar 43'ten başlar, sol kenar 47'de biter (telefona yer açılır)
+    r = 7
+    pts = [(43, 63), (74, 63)]
+    pts += arc_pts(74, 56, r, 90, 0)[1:]
+    pts += [(81, 34)]
+    pts += arc_pts(74, 34, r, 0, -90)[1:]
+    pts += [(34, 27)]
+    pts += arc_pts(34, 34, r, -90, -180)[1:]
+    pts += [(27, 47)]
+    stroke(pts, 5)
+    # telefon
+    r = 5
+    ph = [(25.5, 52)]
+    ph += [(33.5, 52)]
+    ph += arc_pts(33.5, 57, r, -90, 0)[1:]
+    ph += [(38.5, 79)]
+    ph += arc_pts(33.5, 79, r, 0, 90)[1:]
+    ph += [(25.5, 84)]
+    ph += arc_pts(25.5, 79, r, 90, 180)[1:]
+    ph += [(20.5, 57)]
+    ph += arc_pts(25.5, 57, r, 180, 270)[1:]
+    stroke(ph, 4)
+    stroke([(27.5, 57.5), (31.5, 57.5)], 2.2)
+    # yayın üçgeni
+    tri = [P(54, 35), P(46, 51), P(62, 51)]
+    d.polygon(tri, fill=accent)
+    wk = int(3 * SC * k)
+    d.line(tri + [tri[0]], fill=accent, width=wk, joint="curve")
+    for p in tri:
+        d.ellipse([p[0] - wk / 2, p[1] - wk / 2, p[0] + wk / 2, p[1] + wk / 2], fill=accent)
 
 
 def icon(size, glyph_scale):
