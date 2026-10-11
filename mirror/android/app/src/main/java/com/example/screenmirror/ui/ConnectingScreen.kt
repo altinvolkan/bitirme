@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.content.res.ColorStateList
 import android.view.Gravity
 import android.view.View
@@ -10,7 +11,9 @@ import com.example.screenmirror.MainActivity
 
 class ConnectingScreen(a: MainActivity, private var stage: Int) : Screen(a) {
 
-    private val steps = listOf("Cihaza ulaşıldı", "Eşleştirme doğrulandı", "Yayın kuruluyor", "Görüntü başlıyor")
+    private val steps = listOf(
+        str(R.string.step_reached), str(R.string.step_paired), str(R.string.step_setup), str(R.string.step_starting),
+    )
     private lateinit var stepsBox: LinearLayout
 
     override fun build(): View {
@@ -19,7 +22,7 @@ class ConnectingScreen(a: MainActivity, private var stage: Int) : Screen(a) {
         col.add(View(ctx), h = dp(56))
         col.add(Illustration(ctx, Art.LINK), h = dp(200))
         col.add(
-            ctx.label("Bağlanıyor", 32f, C.TEXT, 700, display = true, spacing = -0.02f).apply { gravity = Gravity.CENTER },
+            ctx.label(str(R.string.connecting_title), 32f, C.TEXT, 700, display = true, spacing = -0.02f).apply { gravity = Gravity.CENTER },
             top = 12,
         )
         col.add(
@@ -33,7 +36,7 @@ class ConnectingScreen(a: MainActivity, private var stage: Int) : Screen(a) {
         col.add(stepsBox, top = 24)
         col.add(View(ctx), h = 0, weight = 1f)
         col.add(
-            ctx.bigButton("Vazgeç", C.SURFACE2, C.TEXT) { a.stopMirror() },
+            ctx.bigButton(str(R.string.action_cancel), C.SURFACE2, C.TEXT) { a.stopMirror() },
             h = dp(60),
         )
         renderSteps()

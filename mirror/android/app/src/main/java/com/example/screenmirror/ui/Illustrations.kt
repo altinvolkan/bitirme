@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
@@ -95,12 +96,19 @@ class Illustration(context: Context, private val art: Art) : View(context) {
         c.drawLine(x1, y1, x2, y2, p)
     }
 
-    private fun text(c: Canvas, s: String, x: Float, y: Float, size: Float, color: Int, weight: Int = 600, align: Paint.Align = Paint.Align.CENTER) {
+    private fun s(id: Int): String = context.getString(id)
+
+    /** [maxW] verilirse metin bu genişliğe sığacak kadar küçültülür (uzun çeviriler için). */
+    private fun text(c: Canvas, s: String, x: Float, y: Float, size: Float, color: Int, weight: Int = 600, align: Paint.Align = Paint.Align.CENTER, maxW: Float = 0f) {
         p.style = Paint.Style.FILL
         p.color = color
         p.textSize = size
         p.textAlign = align
         p.typeface = Fonts.body(weight)
+        if (maxW > 0f) {
+            val m = p.measureText(s)
+            if (m > maxW) p.textSize = size * maxW / m
+        }
         c.drawText(s, x, y, p)
     }
 
@@ -151,7 +159,7 @@ class Illustration(context: Context, private val art: Art) : View(context) {
 
     private fun pill(c: Canvas, cx: Float, cy: Float, w: Float, label: String, f: Int, st: Int, color: Int, size: Float = 15f) {
         rr(c, cx - w / 2, cy - 15, cx + w / 2, cy + 15, 15f, f, st, 2f)
-        text(c, label, cx, cy + size * 0.35f, size, color, 700)
+        text(c, label, cx, cy + size * 0.35f, size, color, 700, maxW = w - 18f)
     }
 
     private fun checkBadge(c: Canvas, cx: Float, cy: Float, r: Float = 13f) {
@@ -183,7 +191,7 @@ class Illustration(context: Context, private val art: Art) : View(context) {
         tv(c, 224f, 78f, 76f, 54f)
         waves(c, 160f, 128f, 225f, 90f, C.ACCENT, 3, 22f, 20f)
         circle(c, 160f, 128f, 5.5f, C.ACCENT)
-        pill(c, 160f, 180f, 130f, "Aynı Wi-Fi", C.ACCENT_TINT, C.ACCENT, C.ACCENT)
+        pill(c, 160f, 180f, 130f, s(R.string.art_same_wifi), C.ACCENT_TINT, C.ACCENT, C.ACCENT)
         checkBadge(c, 160f, 36f)
     }
 
@@ -207,8 +215,8 @@ class Illustration(context: Context, private val art: Art) : View(context) {
         // uzak (silik) telefon
         rr(c, 270f, 80f, 306f, 150f, 8f, 0, C.LINE, 2f)
         rr(c, 281f, 128f, 285f, 134f, 1f, C.DIM)
-        text(c, "yakın", 227f, 178f, 14f, C.ACCENT, 700)
-        text(c, "uzak", 288f, 178f, 14f, C.DIM, 600)
+        text(c, s(R.string.art_near), 227f, 178f, 14f, C.ACCENT, 700, maxW = 80f)
+        text(c, s(R.string.art_far), 288f, 178f, 14f, C.DIM, 600, maxW = 60f)
     }
 
     private fun ethernet(c: Canvas) {
@@ -244,26 +252,26 @@ class Illustration(context: Context, private val art: Art) : View(context) {
         // Android'in "ekran paylaş" penceresinin alt kısmı
         val sheet = 0xFF25272C.toInt()
         rr(c, 12f, 4f, 308f, 240f, 26f, sheet)
-        text(c, "Kapsam", 36f, 42f, 17f, C.TEXT, 700, Paint.Align.LEFT)
-        text(c, "Tüm ekranı paylaş  ⇅", 292f, 42f, 14f, C.MUTED, 600, Paint.Align.RIGHT)
+        text(c, s(R.string.art_scope), 36f, 42f, 17f, C.TEXT, 700, Paint.Align.LEFT, maxW = 80f)
+        text(c, s(R.string.scope_entire) + "  ⇅", 292f, 42f, 14f, C.MUTED, 600, Paint.Align.RIGHT, maxW = 175f)
         val glow = (120 + 135 * (if (phase < 0.5f) phase * 2 else (1 - phase) * 2)).toInt()
         rr(c, 24f, 20f, 296f, 56f, 14f, 0, (C.ACCENT and 0x00FFFFFF) or (glow shl 24), 3f)
         // açılan seçenekler
         rr(c, 84f, 62f, 298f, 132f, 14f, 0xFF35373D.toInt(), C.LINE2, 2f)
         checkBadge(c, 104f, 86f, 9f)
-        text(c, "Tüm ekranı paylaş", 124f, 91f, 15f, C.TEXT, 700, Paint.Align.LEFT)
+        text(c, s(R.string.scope_entire), 124f, 91f, 15f, C.TEXT, 700, Paint.Align.LEFT, maxW = 114f)
         rr(c, 244f, 74f, 288f, 92f, 9f, C.ACCENT_TINT)
-        text(c, "önerilen", 266f, 87f, 10f, C.ACCENT, 700)
+        text(c, s(R.string.art_best), 266f, 87f, 10f, C.ACCENT, 700, maxW = 40f)
         line(c, 96f, 104f, 286f, 104f, C.LINE2, 1.5f)
-        text(c, "Tek bir uygulamayı paylaş", 124f, 125f, 15f, C.MUTED, 600, Paint.Align.LEFT)
+        text(c, s(R.string.scope_single), 124f, 125f, 15f, C.MUTED, 600, Paint.Align.LEFT, maxW = 164f)
         // açıklama yer tutucu çizgileri
         rr(c, 32f, 144f, 288f, 150f, 3f, C.LINE2)
         rr(c, 32f, 156f, 240f, 162f, 3f, C.LINE2)
         // düğmeler
         rr(c, 24f, 172f, 150f, 216f, 22f, 0xFF3A3D44.toInt())
-        text(c, "İptal", 87f, 200f, 16f, C.TEXT, 700)
+        text(c, s(R.string.action_cancel), 87f, 200f, 16f, C.TEXT, 700, maxW = 106f)
         rr(c, 162f, 172f, 296f, 216f, 22f, 0xFF2B7BFF.toInt())
-        text(c, "Ekranı paylaş", 229f, 200f, 16f, 0xFFFFFFFF.toInt(), 700)
+        text(c, s(R.string.art_share), 229f, 200f, 16f, 0xFFFFFFFF.toInt(), 700, maxW = 114f)
     }
 
     private fun drm(c: Canvas) {
@@ -279,6 +287,6 @@ class Illustration(context: Context, private val art: Art) : View(context) {
         line(c, 190f, 70f, 222f, 38f, C.LIVE, 4f)
         pill(c, 72f, 188f, 104f, "Netflix", 0, C.LIVE, C.LIVE_TEXT)
         pill(c, 248f, 188f, 104f, "Spotify", 0, C.LIVE, C.LIVE_TEXT)
-        text(c, "ve benzerleri", 160f, 196f, 12f, C.DIM, 500)
+        text(c, s(R.string.art_and_more), 160f, 196f, 12f, C.DIM, 500, maxW = 68f)
     }
 }

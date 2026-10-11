@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
@@ -18,11 +19,11 @@ class PairingScreen(a: MainActivity, private val deviceName: String) : Screen(a)
     override fun build(): View {
         val ctx = a
         val col = ctx.column { setPadding(dp(20), dp(16), dp(20), dp(20)) }
-        col.add(ctx.topBar(null, Icons.BACK, "Geri") { onBack() }, h = dp(56))
+        col.add(ctx.topBar(null, Icons.BACK, str(R.string.cd_back)) { onBack() }, h = dp(56))
 
-        col.add(ctx.label("Eşleştirme kodu", 32f, C.TEXT, 700, display = true, spacing = -0.02f), top = 16)
+        col.add(ctx.label(str(R.string.pairing_title), 32f, C.TEXT, 700, display = true, spacing = -0.02f), top = 16)
         col.add(
-            ctx.label("$deviceName ekranında görünen 4 haneli kodu gir.", 16f, C.MUTED, 400).apply { setLineSpacing(0f, 1.15f) },
+            ctx.label(str(R.string.pairing_body, deviceName), 16f, C.MUTED, 400).apply { setLineSpacing(0f, 1.15f) },
             top = 8,
         )
 
@@ -53,7 +54,7 @@ class PairingScreen(a: MainActivity, private val deviceName: String) : Screen(a)
         }
         col.add(pad)
 
-        confirm = ctx.bigButton("Eşleştir", C.ACCENT, C.ACCENT_DARK, Icons.CHECK, iconFilled = false) { submit() }
+        confirm = ctx.bigButton(str(R.string.pairing_confirm), C.ACCENT, C.ACCENT_DARK, Icons.CHECK, iconFilled = false) { submit() }
         col.add(confirm, h = dp(60), top = 18)
         update()
         return col
@@ -75,7 +76,7 @@ class PairingScreen(a: MainActivity, private val deviceName: String) : Screen(a)
             }
         }
         if (k == "<") {
-            f.contentDescription = "Sil"
+            f.contentDescription = str(R.string.cd_delete)
             f.addView(ctx.icon(Icons.BACKSPACE, C.TEXT), FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER))
         } else {
             f.addView(

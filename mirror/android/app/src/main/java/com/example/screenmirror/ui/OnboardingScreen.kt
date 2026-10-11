@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
@@ -14,30 +15,22 @@ class OnboardingScreen(a: MainActivity, private val fromSettings: Boolean = fals
 
     private val steps = listOf(
         Step(
-            Art.WIFI, C.ACCENT, "Apple TV ile aynı ağda ol",
-            "Telefonun ve Apple TV'nin aynı Wi-Fi ağına bağlı olduğundan emin ol. Farklı ağlardaki cihazlar birbirini göremez.",
+            Art.WIFI, C.ACCENT, str(R.string.onb1_title), str(R.string.onb1_body),
         ),
         Step(
-            Art.FIVE_G, C.ACCENT, "5 GHz bağlantıyı tercih et",
-            "Wi-Fi ayarlarından 5 GHz bandındaki ağa bağlanırsan görüntü daha az takılır, gecikme düşer.",
+            Art.FIVE_G, C.ACCENT, str(R.string.onb2_title), str(R.string.onb2_body),
         ),
         Step(
-            Art.NEAR, C.ACCENT, "Modeme yakın dur",
-            "Telefon modeme ne kadar yakınsa görüntü o kadar akıcı olur. Duvarlar ve uzaklık sinyali zayıflatır.",
+            Art.NEAR, C.ACCENT, str(R.string.onb3_title), str(R.string.onb3_body),
         ),
         Step(
-            Art.ETHERNET, C.ACCENT, "Apple TV'yi kabloyla bağla",
-            "En iyi performans için Apple TV'nin Ethernet kablosuyla modeme bağlanması tavsiye edilir.",
+            Art.ETHERNET, C.ACCENT, str(R.string.onb4_title), str(R.string.onb4_body),
         ),
         Step(
-            Art.SCOPE, C.ACCENT, "Paylaşım kapsamını seç",
-            "Yansıtmayı başlatınca Android “Kapsam” soracak. “Tüm ekranı paylaş” dersen uygulamalar arasında gezerken " +
-                "yansıtma sürer. “Tek bir uygulamayı paylaş” dersen yalnızca seçtiğin uygulama görünür. Önerimiz: Tüm ekranı paylaş.",
+            Art.SCOPE, C.ACCENT, str(R.string.onb5_title), str(R.string.onb5_body, str(R.string.scope_entire), str(R.string.scope_single)),
         ),
         Step(
-            Art.DRM, C.LIVE_TEXT, "DRM'li uygulamalar yansıtılamaz!",
-            "Netflix, Spotify gibi içerik koruması olan uygulamalar siyah ekran verir ya da sessiz kalır. " +
-                "Satın alım yapmadan önce bunu göz önünde bulundur.",
+            Art.DRM, C.LIVE_TEXT, str(R.string.onb6_title), str(R.string.onb6_body),
         ),
     )
 
@@ -51,7 +44,7 @@ class OnboardingScreen(a: MainActivity, private val fromSettings: Boolean = fals
         // üst çubuk: sağda "tanıtımı atla"
         val top = ctx.row { }
         top.spacer()
-        val skip = ctx.label("Tanıtımı atla", 15f, C.MUTED, 600).apply {
+        val skip = ctx.label(str(R.string.onb_skip), 15f, C.MUTED, 600).apply {
             gravity = Gravity.CENTER
             setPadding(dp(14), 0, dp(14), 0)
             isClickable = true
@@ -99,9 +92,9 @@ class OnboardingScreen(a: MainActivity, private val fromSettings: Boolean = fals
         col.add(dots, top = 4, bottom = 20)
 
         val btn = if (last) {
-            ctx.bigButton("Yansıtmaya başla", C.ACCENT, C.ACCENT_DARK, Icons.PLAY) { finish() }
+            ctx.bigButton(str(R.string.onb_start), C.ACCENT, C.ACCENT_DARK, Icons.PLAY) { finish() }
         } else {
-            ctx.bigButton("Sonraki ipucu", C.SURFACE2, C.TEXT, Icons.CHEVRON, iconFilled = false) {
+            ctx.bigButton(str(R.string.onb_next), C.SURFACE2, C.TEXT, Icons.CHEVRON, iconFilled = false) {
                 index++
                 render()
             }

@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.content.Context
 import com.example.screenmirror.AirPlayTarget
 
@@ -55,7 +56,7 @@ class UiPrefs(context: Context) {
     val bitrateMbps: Int get() = BITRATES[bitrateIdx]
 
     companion object {
-        val LATENCIES = listOf("Düşük" to 120, "Dengeli" to 250, "Kararlı" to 400)
+        val LATENCIES = listOf(R.string.latency_low to 120, R.string.latency_balanced to 250, R.string.latency_stable to 400)
         val BITRATES = listOf(4, 8, 12)
     }
 }
@@ -66,6 +67,8 @@ abstract class Screen(protected val a: com.example.screenmirror.MainActivity) {
     abstract fun build(): android.view.View
 
     protected fun dp(v: Int): Int = a.dp(v)
+
+    protected fun str(id: Int, vararg args: Any): String = a.getString(id, *args)
 
     open fun onShown() {}
     open fun onHidden() {}

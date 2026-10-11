@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
@@ -33,10 +34,10 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         header.add(dot, w = dp(10), h = dp(10), end = 8)
         header.add(ctx.label("yansıt", 24f, C.TEXT, 700, display = true, spacing = -0.02f), WRAP, WRAP)
         header.spacer()
-        header.add(ctx.iconButton(Icons.SLIDERS, "Ayarlar") { a.openSettings() }, w = dp(44), h = dp(44))
+        header.add(ctx.iconButton(Icons.SLIDERS, str(R.string.cd_settings)) { a.openSettings() }, w = dp(44), h = dp(44))
         col.add(header, h = dp(56))
 
-        col.add(ctx.label("Nereye yansıtalım?", 32f, C.TEXT, 700, display = true, spacing = -0.02f), top = 20)
+        col.add(ctx.label(str(R.string.home_title), 32f, C.TEXT, 700, display = true, spacing = -0.02f), top = 20)
         sub = ctx.label("", 16f, C.MUTED, 400)
         col.add(sub, top = 6)
 
@@ -44,7 +45,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         col.add(list, top = 18)
 
         col.add(
-            ctx.label("Aradığın yok mu? IP ile bağlan", 15f, C.ACCENT, 600).apply {
+            ctx.label(str(R.string.home_manual), 15f, C.ACCENT, 600).apply {
                 gravity = Gravity.CENTER
                 isClickable = true
                 setOnClickListener { a.openNoDevice() }
@@ -57,10 +58,10 @@ class HomeScreen(a: MainActivity) : Screen(a) {
 
         col.add(View(ctx), h = 0, weight = 1f)
 
-        cta = ctx.bigButton("Yansıtmayı başlat", C.ACCENT, C.ACCENT_DARK, Icons.PLAY) { a.startMirror() }
+        cta = ctx.bigButton(str(R.string.home_start), C.ACCENT, C.ACCENT_DARK, Icons.PLAY) { a.startMirror() }
         col.add(cta, h = dp(60), top = 20)
         col.add(
-            ctx.label("Başlatınca Android ekran paylaşım izni isteyecek.", 13f, C.DIM, 400).apply { gravity = Gravity.CENTER },
+            ctx.label(str(R.string.home_start_hint), 13f, C.DIM, 400).apply { gravity = Gravity.CENTER },
             top = 10,
         )
         goldLink = ctx.label("", 15f, C.GOLD, 600).apply {
@@ -99,8 +100,8 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         val ctx = a
         val devices = a.devices
         sub.text = when (devices.size) {
-            0 -> "Ekranlar aranıyor…"
-            else -> "Aynı Wi-Fi'daki ${devices.size} ekran bulundu"
+            0 -> str(R.string.home_searching)
+            else -> a.resources.getQuantityString(R.plurals.home_found, devices.size, devices.size)
         }
 
         list.removeAllViews()
@@ -119,8 +120,8 @@ class HomeScreen(a: MainActivity) : Screen(a) {
             a.ads.detachBanner()
         } else {
             goldLink.visibility = View.VISIBLE
-            val price = a.billing.priceText ?: "₺99"
-            goldLink.text = "Reklamları kaldır · $price/ay"
+            val price = a.billing.priceText ?: "…"
+            goldLink.text = str(R.string.home_remove_ads, str(R.string.price_per_month, price))
             bannerSlot.visibility = View.VISIBLE
             bannerSlot.minimumHeight = dp(50)
             a.ads.showBanner(bannerSlot)
@@ -133,7 +134,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
             setPadding(dp(16), dp(18), dp(16), dp(18))
             background = ctx.rounded(C.SURFACE, 22, C.LINE, 1)
             add(ctx.icon(Icons.WIFI, C.DIM), w = dp(24), h = dp(24), end = 12)
-            add(ctx.label("Apple TV aranıyor…", 16f, C.MUTED, 500), w = 0, weight = 1f)
+            add(ctx.label(str(R.string.home_searching_card), 16f, C.MUTED, 500), w = 0, weight = 1f)
         }
     }
 
@@ -172,7 +173,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
             setPadding(dp(14), dp(14), dp(14), dp(14))
             background = ctx.rounded(C.SURFACE, 22, C.LINE, 1)
         }
-        card.add(ctx.label("Gecikme payı", 14f, C.MUTED, 600), start = 2)
+        card.add(ctx.label(str(R.string.latency_title), 14f, C.MUTED, 600), start = 2)
         val seg = ctx.row {
             background = ctx.rounded(C.BG, 14)
             setPadding(dp(4), dp(4), dp(4), dp(4))
@@ -183,7 +184,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
                 gravity = Gravity.CENTER
                 isClickable = true
                 background = if (on) ctx.rounded(C.ACCENT, 11) else ctx.rippleRounded(0, 11)
-                add(ctx.label(name, 15f, if (on) C.ACCENT_DARK else C.TEXT, 700).apply { gravity = Gravity.CENTER })
+                add(ctx.label(str(name), 15f, if (on) C.ACCENT_DARK else C.TEXT, 700).apply { gravity = Gravity.CENTER })
                 add(ctx.label("$ms ms", 12f, if (on) C.ACCENT_DARK else C.DIM, 500).apply { gravity = Gravity.CENTER })
                 setOnClickListener {
                     a.prefs.latencyIdx = i
@@ -193,7 +194,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
             seg.add(cell, w = 0, h = dp(52), weight = 1f)
         }
         card.add(seg, top = 10)
-        card.add(ctx.label("Düşük payda görüntü hızlı gelir ama Wi-Fi zayıfsa takılabilir.", 12f, C.DIM, 400), top = 8, start = 2)
+        card.add(ctx.label(str(R.string.latency_hint), 12f, C.DIM, 400), top = 8, start = 2)
         return card
     }
 }

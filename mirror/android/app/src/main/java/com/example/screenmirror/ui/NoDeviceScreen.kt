@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
@@ -20,20 +21,20 @@ class NoDeviceScreen(a: MainActivity) : Screen(a) {
         val col = ctx.column {}
 
         val header = ctx.row {}
-        header.add(ctx.iconButton(Icons.BACK, "Geri") { onBack() }, w = dp(44), h = dp(44))
+        header.add(ctx.iconButton(Icons.BACK, str(R.string.cd_back)) { onBack() }, w = dp(44), h = dp(44))
         header.spacer()
-        header.add(ctx.iconButton(Icons.SLIDERS, "Ayarlar") { a.openSettings() }, w = dp(44), h = dp(44))
+        header.add(ctx.iconButton(Icons.SLIDERS, str(R.string.cd_settings)) { a.openSettings() }, w = dp(44), h = dp(44))
         outer.add(header, h = dp(56))
 
         val badge = FrameLayout(ctx).apply { background = ctx.rounded(0, 16, C.LINE2, 2) }
         badge.addView(ctx.icon(Icons.HELP, C.DIM, 1.6f), FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER))
         col.add(badge, w = dp(132), h = dp(88), top = 20, gravity = Gravity.CENTER_HORIZONTAL)
         col.add(
-            ctx.label("Ekran bulunamadı", 30f, C.TEXT, 700, display = true, spacing = -0.02f).apply { gravity = Gravity.CENTER },
+            ctx.label(str(R.string.nodevice_title), 30f, C.TEXT, 700, display = true, spacing = -0.02f).apply { gravity = Gravity.CENTER },
             top = 22,
         )
         col.add(
-            ctx.label("Telefon aynı ağdaki Apple TV'yi göremiyor. Şunlara bak:", 16f, C.MUTED, 400).apply { gravity = Gravity.CENTER },
+            ctx.label(str(R.string.nodevice_body), 16f, C.MUTED, 400).apply { gravity = Gravity.CENTER },
             top = 8, start = 12, end = 12,
         )
 
@@ -42,9 +43,9 @@ class NoDeviceScreen(a: MainActivity) : Screen(a) {
             setPadding(dp(18), dp(6), dp(18), dp(6))
         }
         listOf(
-            "Telefon ve Apple TV aynı Wi-Fi'a bağlı olmalı. 5 GHz ağ daha iyi çalışır.",
-            "Apple TV'de Ayarlar > AirPlay ve HomeKit > Erişime İzin Ver değeri “Aynı Ağdaki Herkes” olsun.",
-            "Apple TV uyku modunda olabilir; uzaktan kumandayla uyandır.",
+            str(R.string.tip1),
+            str(R.string.tip2),
+            str(R.string.tip3),
         ).forEachIndexed { i, s ->
             if (i > 0) tips.add(ctx.divider(), h = 1)
             val r = ctx.row { setPadding(0, dp(14), 0, dp(14)) }
@@ -55,7 +56,7 @@ class NoDeviceScreen(a: MainActivity) : Screen(a) {
         }
         col.add(tips, top = 24)
 
-        col.add(ctx.label("Ya da IP adresini yaz", 14f, C.MUTED, 600), top = 16, start = 4)
+        col.add(ctx.label(str(R.string.nodevice_ip_label), 14f, C.MUTED, 600), top = 16, start = 4)
         val ipRow = ctx.row {}
         ip = EditText(ctx).apply {
             hint = "192.168.1.118"
@@ -74,7 +75,7 @@ class NoDeviceScreen(a: MainActivity) : Screen(a) {
             }
         }
         ipRow.add(ip, w = 0, h = dp(52), weight = 1f, end = 10)
-        val go = ctx.label("Bağlan", 16f, C.TEXT, 600).apply {
+        val go = ctx.label(str(R.string.nodevice_connect), 16f, C.TEXT, 600).apply {
             gravity = Gravity.CENTER
             background = ctx.rippleRounded(C.LINE, 16)
             setPadding(dp(18), 0, dp(18), 0)
@@ -87,7 +88,7 @@ class NoDeviceScreen(a: MainActivity) : Screen(a) {
         scroll.addView(col, FrameLayout.LayoutParams(MATCH, WRAP))
         outer.add(scroll, h = 0, weight = 1f)
         outer.add(
-            ctx.bigButton("Tekrar ara", C.ACCENT, C.ACCENT_DARK, Icons.REFRESH, iconFilled = false) { a.rescan() },
+            ctx.bigButton(str(R.string.nodevice_retry), C.ACCENT, C.ACCENT_DARK, Icons.REFRESH, iconFilled = false) { a.rescan() },
             h = dp(60), top = 12,
         )
         return outer

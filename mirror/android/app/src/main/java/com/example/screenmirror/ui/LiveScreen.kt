@@ -1,5 +1,6 @@
 package com.example.screenmirror.ui
 
+import com.example.screenmirror.R
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -43,10 +44,10 @@ class LiveScreen(a: MainActivity) : Screen(a) {
             setPadding(dp(16), 0, dp(18), 0)
         }
         pill.add(View(ctx).apply { background = ctx.circle(C.LIVE) }, w = dp(10), h = dp(10), end = 8)
-        pill.add(ctx.label("Canlı", 16f, C.LIVE_TEXT, 700), WRAP, WRAP)
+        pill.add(ctx.label(str(R.string.live_badge), 16f, C.LIVE_TEXT, 700), WRAP, WRAP)
         top.add(pill, w = WRAP, h = dp(44))
         top.spacer()
-        top.add(ctx.iconButton(Icons.SLIDERS, "Ayarlar") { a.openSettings() }, w = dp(44), h = dp(44))
+        top.add(ctx.iconButton(Icons.SLIDERS, str(R.string.cd_settings)) { a.openSettings() }, w = dp(44), h = dp(44))
         col.add(top, h = dp(56))
 
         col.add(
@@ -64,11 +65,11 @@ class LiveScreen(a: MainActivity) : Screen(a) {
         bitV = ctx.label("", 22f, C.TEXT, 700, display = true)
         latV = ctx.label("", 22f, C.TEXT, 700, display = true)
         val r1 = ctx.row {}
-        r1.add(stat("Çözünürlük", resV), w = 0, weight = 1f, end = 6)
-        r1.add(stat("Kare hızı", fpsV), w = 0, weight = 1f, start = 6)
+        r1.add(stat(str(R.string.stat_resolution), resV), w = 0, weight = 1f, end = 6)
+        r1.add(stat(str(R.string.stat_fps), fpsV), w = 0, weight = 1f, start = 6)
         val r2 = ctx.row {}
-        r2.add(stat("Bit hızı", bitV), w = 0, weight = 1f, end = 6)
-        r2.add(stat("Gecikme payı", latV), w = 0, weight = 1f, start = 6)
+        r2.add(stat(str(R.string.stat_bitrate), bitV), w = 0, weight = 1f, end = 6)
+        r2.add(stat(str(R.string.latency_title), latV), w = 0, weight = 1f, start = 6)
         grid.add(r1)
         grid.add(r2, top = 12)
         col.add(grid, top = 12)
@@ -77,12 +78,12 @@ class LiveScreen(a: MainActivity) : Screen(a) {
             col.add(audioCard(), top = 12)
         }
         col.add(
-            ctx.label("Telefonu yan çevirirsen görüntü otomatik uyum sağlar.", 13f, C.DIM, 400).apply { gravity = Gravity.CENTER },
+            ctx.label(str(R.string.live_rotate_hint), 13f, C.DIM, 400).apply { gravity = Gravity.CENTER },
             top = 14,
         )
         col.add(View(ctx), h = dp(16), weight = 1f)
         col.add(
-            ctx.bigButton("Yansıtmayı durdur", C.LIVE, C.LIVE_DARK, Icons.STOP) { a.stopMirror() },
+            ctx.bigButton(str(R.string.live_stop), C.LIVE, C.LIVE_DARK, Icons.STOP) { a.stopMirror() },
             h = dp(60), top = 8,
         )
         scroll.addView(col, FrameLayout.LayoutParams(MATCH, WRAP))
@@ -108,8 +109,8 @@ class LiveScreen(a: MainActivity) : Screen(a) {
             minimumHeight = dp(64)
             add(ctx.icon(Icons.VOLUME, C.ACCENT, 1.8f), w = dp(24), h = dp(24), end = 12)
             val t = ctx.column {}
-            t.add(ctx.label("Sistem sesi", 16f, C.TEXT, 600))
-            t.add(ctx.label("Telefondaki ses de Apple TV'den çalar", 13f, C.MUTED, 400), top = 2)
+            t.add(ctx.label(str(R.string.audio_title), 16f, C.TEXT, 600))
+            t.add(ctx.label(str(R.string.audio_sub), 13f, C.MUTED, 400), top = 2)
             add(t, w = 0, weight = 1f)
             add(Toggle(ctx, a.prefs.audio) { on ->
                 a.prefs.audio = on
@@ -124,7 +125,7 @@ class LiveScreen(a: MainActivity) : Screen(a) {
         val secs = if (started > 0) ((SystemClock.elapsedRealtime() - started) / 1000).toInt() else 0
         val time = if (secs >= 3600) "%d:%02d:%02d".format(secs / 3600, secs / 60 % 60, secs % 60)
         else "%02d:%02d".format(secs / 60, secs % 60)
-        elapsed.text = "Yansıtılıyor · $time"
+        elapsed.text = str(R.string.live_elapsed, time)
         resV.text = if (LiveInfo.width > 0) "${LiveInfo.width}×${LiveInfo.height}" else "—"
         fpsV.text = if (LiveInfo.fps > 0) "${LiveInfo.fps} fps" else "—"
         bitV.text = if (LiveInfo.bitrateMbps > 0) "${LiveInfo.bitrateMbps} Mbps" else "—"

@@ -165,7 +165,7 @@ class MirrorService : Service() {
 
         val b = AirPlayBackendLoader.create(target, AirPlayCredentials.load(this, target.deviceId), cb)
         if (b == null) {
-            MirrorEvents.status("error", "AirPlay kütüphanesi (airplay.aar) yok; mirror/airplay-go/README.md'ye bak")
+            MirrorEvents.status("error", getString(R.string.svc_no_lib))
             return false
         }
         backend = b
@@ -196,7 +196,7 @@ class MirrorService : Service() {
                 capturer.muted = audioMuted
                 audio = capturer
             } else {
-                MirrorEvents.status("audio", "Ses yakalanamadı; görüntü sessiz devam ediyor")
+                MirrorEvents.status("audio", getString(R.string.svc_audio_fail))
             }
         }
     }
@@ -258,7 +258,7 @@ class MirrorService : Service() {
     private fun startForegroundWithNotification() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Ekran yansıtma", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, getString(R.string.notif_channel), NotificationManager.IMPORTANCE_LOW)
         )
         val stopIntent = PendingIntent.getService(
             this, 0,
@@ -266,9 +266,9 @@ class MirrorService : Service() {
             PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("Ekran Apple TV'ye yansıtılıyor")
+            .setContentTitle(getString(R.string.notif_title))
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .addAction(Notification.Action.Builder(null, "Durdur", stopIntent).build())
+            .addAction(Notification.Action.Builder(null, getString(R.string.action_stop), stopIntent).build())
             .setOngoing(true)
             .build()
         startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)

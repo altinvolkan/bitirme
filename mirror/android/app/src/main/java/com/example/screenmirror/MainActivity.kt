@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
     private val capture = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         val dev = pending ?: return@registerForActivityResult
         if (r.resultCode != Activity.RESULT_OK || r.data == null) {
-            toast("Ekran yakalama izni verilmedi")
+            toast(getString(R.string.toast_no_capture))
             return@registerForActivityResult
         }
         val svc = Intent(this, MirrorService::class.java)
@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
 
     /** Ses yakalama izni; reddedilse bile görüntü sessiz olarak devam eder. */
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (!granted) toast("Ses izni verilmedi; görüntü sessiz yansıtılacak")
+        if (!granted) toast(getString(R.string.toast_no_audio))
         requestCapture()
     }
 
@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
 
         udpDiscovery = TvDiscovery(this) { name, host, port ->
-            if (host != null) addDevice(Device(Kind.UDP, name, "Kendi alıcımız", host, port))
+            if (host != null) addDevice(Device(Kind.UDP, name, getString(R.string.subtitle_own), host, port))
         }
         airplayDiscovery = AirPlayDiscovery(this) { t ->
             addDevice(Device(Kind.AIRPLAY, t.name, subtitleFor(t.txt), t.ip, t.port, t))
@@ -216,7 +216,7 @@ class MainActivity : ComponentActivity() {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL)))
         } catch (_: Exception) {
-            toast("Gizlilik politikası bağlantısı açılamadı")
+            toast(getString(R.string.toast_privacy_fail))
         }
     }
 
@@ -235,7 +235,7 @@ class MainActivity : ComponentActivity() {
         return when {
             model.startsWith("AppleTV6,2") || model.startsWith("AppleTV11,1") || model.startsWith("AppleTV14,1") -> "Apple TV 4K"
             model.startsWith("AppleTV") -> "Apple TV"
-            else -> "AirPlay alıcısı"
+            else -> getString(R.string.subtitle_airplay)
         }
     }
 
@@ -283,13 +283,13 @@ class MainActivity : ComponentActivity() {
 
     fun connectManual(ip: String) {
         if (!Regex("""\d{1,3}(\.\d{1,3}){3}""").matches(ip)) {
-            toast("Geçerli bir IP adresi yaz (ör. 192.168.1.118)")
+            toast(getString(R.string.toast_bad_ip))
             return
         }
         val d = if (AirPlayBackendLoader.available) {
-            Device(Kind.AIRPLAY, ip, "AirPlay alıcısı", ip, 7000, AirPlayTarget(ip, ip, 7000, ""))
+            Device(Kind.AIRPLAY, ip, getString(R.string.subtitle_airplay), ip, 7000, AirPlayTarget(ip, ip, 7000, ""))
         } else {
-            Device(Kind.UDP, ip, "Kendi alıcımız", ip, Protocol.DEFAULT_PORT)
+            Device(Kind.UDP, ip, getString(R.string.subtitle_own), ip, Protocol.DEFAULT_PORT)
         }
         if (manual.none { it.key == d.key }) manual.add(d)
         if (devices.none { it.key == d.key }) devices.add(d)
@@ -302,7 +302,7 @@ class MainActivity : ComponentActivity() {
     fun startMirror() {
         val d = selected
         if (d == null) {
-            toast("Önce bir ekran seç")
+            toast(getString(R.string.toast_pick_device))
             return
         }
         if (MirrorService.running) return syncWithService()
@@ -347,7 +347,7 @@ class MainActivity : ComponentActivity() {
             "streaming" -> if (current !is LiveScreen) showFlow(LiveScreen(this))
             "audio" -> toast(detail)
             "error" -> {
-                toast("Bağlanılamadı: $detail")
+                toast(getString(R.string.toast_connect_fail, detail))
                 if (inFlow()) goHome()
             }
             "stopped" -> if (inFlow()) goHome()
