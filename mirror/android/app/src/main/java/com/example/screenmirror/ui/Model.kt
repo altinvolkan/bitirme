@@ -65,7 +65,8 @@ class UiPrefs(context: Context) {
 
     val latencyMs: Int get() = LATENCIES[latencyIdx].second
     val bitrateMbps: Int get() = BITRATES[bitrateIdx]
-    val fps: Int get() = FPS_OPTIONS[fpsIdx]
+    /** Fiilen kullanılacak kare hızı: 60 fps yalnızca premium'da; abonelik bitmişse 30'a döner. */
+    val fps: Int get() = if (com.example.screenmirror.monetization.Entitlements.premium) FPS_OPTIONS[fpsIdx] else FPS_OPTIONS[0]
 
     companion object {
         val LATENCIES = listOf(R.string.latency_low to 120, R.string.latency_balanced to 250, R.string.latency_stable to 400)

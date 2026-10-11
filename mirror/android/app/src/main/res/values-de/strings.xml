@@ -87,7 +87,8 @@
     <string name="set_quality">Bildqualität</string>
     <string name="set_audio">Systemton senden</string>
     <string name="set_apply_hint">Latenz, Qualität und Bildrate gelten ab der nächsten Spiegelung.</string>
-    <string name="set_fps_hint">60 fps ist flüssiger, braucht aber mehr Akku und erwärmt das Handy stärker.</string>
+    <string name="set_fps_hint">60 fps (Premium) ist flüssiger, braucht aber mehr Akku und erwärmt das Handy stärker.</string>
+    <string name="premium_b5">Flüssigere Spiegelung mit 60 fps</string>
     <string name="set_group_devices">Geräte</string>
     <string name="set_paired">Gekoppelte Bildschirme</string>
     <string name="set_reset">Alle Kopplungen zurücksetzen</string>

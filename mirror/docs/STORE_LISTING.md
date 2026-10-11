@@ -18,7 +18,7 @@ Mirror your Android screen to Apple TV over your home Wi-Fi.
 • Rotate your phone and the picture adapts automatically.
 • Pairing is remembered, so the code is entered only once.
 
-Free to use with ads and a small watermark. iMirror Premium removes ads and the watermark.
+Free to use with ads and a small watermark. iMirror Premium removes ads and the watermark, and unlocks 60 fps.
 
 Good to know: apps with DRM protection (such as Netflix or Spotify) cannot be mirrored. For the best results use a 5 GHz Wi-Fi network, stay close to the router and connect the Apple TV with an Ethernet cable.
 
@@ -40,7 +40,7 @@ Android ekranını ev Wi-Fi ağın üzerinden Apple TV'ye yansıt.
 • Telefonu çevirince görüntü otomatik uyum sağlar.
 • Eşleştirme hatırlanır, kod yalnızca bir kez girilir.
 
-Reklamlı ve küçük filigranlı olarak ücretsiz kullanılır. iMirror Premium reklamları ve filigranı kaldırır.
+Reklamlı ve küçük filigranlı olarak ücretsiz kullanılır. iMirror Premium reklamları ve filigranı kaldırır, 60 fps'nin kilidini açar.
 
 Bilmekte fayda var: DRM korumalı uygulamalar (Netflix, Spotify gibi) yansıtılamaz. En iyi sonuç için 5 GHz Wi-Fi kullan, modeme yakın dur ve Apple TV'yi Ethernet kablosuyla bağla.
 
@@ -62,7 +62,7 @@ Spiegle deinen Android-Bildschirm über dein WLAN auf Apple TV.
 • Beim Drehen des Handys passt sich das Bild automatisch an.
 • Die Kopplung wird gespeichert, der Code ist nur einmal nötig.
 
-Kostenlos mit Werbung und einem kleinen Wasserzeichen. iMirror Premium entfernt Werbung und Wasserzeichen.
+Kostenlos mit Werbung und einem kleinen Wasserzeichen. iMirror Premium entfernt Werbung und Wasserzeichen und schaltet 60 fps frei.
 
 Gut zu wissen: Apps mit DRM-Schutz (z. B. Netflix oder Spotify) lassen sich nicht spiegeln. Für beste Ergebnisse nutze ein 5-GHz-WLAN, bleibe nah am Router und verbinde den Apple TV per Ethernet-Kabel.
 
@@ -84,7 +84,7 @@ Duplica la pantalla de tu Android en el Apple TV a través de tu Wi-Fi doméstic
 • Gira el teléfono y la imagen se adapta automáticamente.
 • El emparejamiento se recuerda; el código se introduce una sola vez.
 
-Uso gratuito con anuncios y una pequeña marca de agua. iMirror Premium elimina los anuncios y la marca de agua.
+Uso gratuito con anuncios y una pequeña marca de agua. iMirror Premium elimina los anuncios y la marca de agua, y desbloquea 60 fps.
 
 Conviene saber: las apps con protección DRM (como Netflix o Spotify) no se pueden duplicar. Para mejores resultados usa una red Wi-Fi de 5 GHz, mantente cerca del router y conecta el Apple TV por cable Ethernet.
 
@@ -106,7 +106,7 @@ Recopie l'écran de ton Android sur l'Apple TV via ton Wi-Fi à la maison.
 • Fais pivoter le téléphone et l'image s'adapte automatiquement.
 • L'association est mémorisée : le code n'est saisi qu'une fois.
 
-Gratuit avec des pubs et un petit filigrane. iMirror Premium supprime les pubs et le filigrane.
+Gratuit avec des pubs et un petit filigrane. iMirror Premium supprime les pubs et le filigrane, et débloque le 60 fps.
 
 Bon à savoir : les applis protégées par DRM (comme Netflix ou Spotify) ne peuvent pas être recopiées. Pour de meilleurs résultats, utilise un Wi-Fi 5 GHz, reste près du routeur et branche l'Apple TV en Ethernet.
 
@@ -128,7 +128,7 @@ Trasmetti lo schermo del tuo Android sull'Apple TV tramite il Wi-Fi di casa.
 • Ruota il telefono e l'immagine si adatta automaticamente.
 • L'associazione viene ricordata: il codice si inserisce una sola volta.
 
-Gratuita con pubblicità e una piccola filigrana. iMirror Premium rimuove pubblicità e filigrana.
+Gratuita con pubblicità e una piccola filigrana. iMirror Premium rimuove pubblicità e filigrana e sblocca i 60 fps.
 
 Da sapere: le app con protezione DRM (come Netflix o Spotify) non possono essere trasmesse. Per i migliori risultati usa una rete Wi-Fi a 5 GHz, resta vicino al router e collega l'Apple TV con un cavo Ethernet.
 
@@ -150,7 +150,7 @@ Espelhe a tela do seu Android na Apple TV pelo Wi-Fi da sua casa.
 • Gire o celular e a imagem se adapta automaticamente.
 • O pareamento é lembrado; o código é digitado só uma vez.
 
-Uso gratuito com anúncios e uma pequena marca d'água. O iMirror Premium remove os anúncios e a marca d'água.
+Uso gratuito com anúncios e uma pequena marca d'água. O iMirror Premium remove os anúncios e a marca d'água e libera 60 fps.
 
 Bom saber: apps com proteção DRM (como Netflix ou Spotify) não podem ser espelhados. Para melhores resultados, use Wi-Fi de 5 GHz, fique perto do roteador e conecte a Apple TV por cabo Ethernet.
 
@@ -172,7 +172,7 @@ O iMirror é um app independente, sem afiliação com a Apple Inc. nem aprovaç�
 • Поверните телефон — изображение подстроится автоматически.
 • Сопряжение запоминается, код вводится только один раз.
 
-Бесплатно, с рекламой и небольшим водяным знаком. iMirror Premium убирает рекламу и водяной знак.
+Бесплатно, с рекламой и небольшим водяным знаком. iMirror Premium убирает рекламу и водяной знак и открывает 60 fps.
 
 Важно: приложения с защитой DRM (например, Netflix или Spotify) транслировать нельзя. Для лучшего результата используйте сеть Wi-Fi 5 ГГц, находитесь ближе к роутеру и подключите Apple TV кабелем Ethernet.
 

@@ -37,9 +37,14 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             }
         }
         val rFps = ctx.settingRow(str(R.string.stat_fps), "${a.prefs.fps} fps") {
-            choose(str(R.string.stat_fps), UiPrefs.FPS_OPTIONS.map { "$it fps" }, a.prefs.fpsIdx) {
-                a.prefs.fpsIdx = it
-                rebuild()
+            val items = UiPrefs.FPS_OPTIONS.map { if (it > 30 && !Entitlements.premium) "$it fps · Premium" else "$it fps" }
+            choose(str(R.string.stat_fps), items, if (Entitlements.premium) a.prefs.fpsIdx else 0) {
+                if (UiPrefs.FPS_OPTIONS[it] > 30 && !Entitlements.premium) {
+                    a.openPremium() // 60 fps Premium'a özel
+                } else {
+                    a.prefs.fpsIdx = it
+                    rebuild()
+                }
             }
         }
         val rAudio = ctx.row {

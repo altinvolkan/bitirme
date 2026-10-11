@@ -37,6 +37,7 @@ class PremiumScreen(a: MainActivity) : Screen(a) {
             str(R.string.premium_b1),
             str(R.string.premium_b2),
             str(R.string.premium_b4),
+            str(R.string.premium_b5),
             str(R.string.premium_b3),
         ).forEach { s ->
             val r = ctx.row {}
