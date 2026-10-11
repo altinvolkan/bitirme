@@ -32,7 +32,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         val header = ctx.row {}
         val dot = View(ctx).apply { background = ctx.circle(C.ACCENT) }
         header.add(dot, w = dp(10), h = dp(10), end = 8)
-        header.add(ctx.label("yansıt", 24f, C.TEXT, 700, display = true, spacing = -0.02f), WRAP, WRAP)
+        header.add(ctx.label(str(R.string.app_name), 24f, C.TEXT, 700, display = true, spacing = -0.02f), WRAP, WRAP)
         header.spacer()
         header.add(ctx.iconButton(Icons.SLIDERS, str(R.string.cd_settings)) { a.openSettings() }, w = dp(44), h = dp(44))
         col.add(header, h = dp(56))

@@ -29,7 +29,7 @@ android {
     defaultConfig {
         // YAYIN ÖNCESİ: benzersiz bir paket adıyla değiştirin (örn. com.sirketiniz.ekranyansit);
         // Play'de yayınlandıktan sonra değiştirilemez. Bkz. mirror/docs/PLAY_STORE_ROADMAP.md
-        applicationId = "com.example.screenmirror"
+        applicationId = "com.altinvolkan.imirror"
         minSdk = 30
         targetSdk = 34 // Play yeni yüklemeler için daha yeni hedef ister; yol haritası Faz 1
         versionCode = 2

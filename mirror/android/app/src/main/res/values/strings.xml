@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">iMirror</string>
     <string name="notif_channel">Screen mirroring</string>
     <string name="notif_title">Mirroring your screen to Apple TV</string>
     <string name="action_stop">Stop</string>

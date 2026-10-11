@@ -14,7 +14,9 @@
     <application
         android:allowBackup="false"
         android:localeConfig="@xml/locales_config"
-        android:label="Screen Mirror"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
         <meta-data

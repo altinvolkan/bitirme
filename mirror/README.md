@@ -53,3 +53,9 @@ Ekranlar `android/app/src/main/java/com/example/screenmirror/ui/` altında progr
   (değişken yazı tipi) koyulursa kullanılır, yoksa sistem yazı tipi.
 - Gizlilik politikası bağlantısı `MainActivity.PRIVACY_URL` içinde; yayından önce gerçek adresle değiştir.
 - IP ile bağlan: AirPlay kütüphanesi varsa 7000 portlu AirPlay cihazı, yoksa UDP alıcısı eklenir.
+
+## Marka: iMirror
+
+- Uygulama kimliği (applicationId): `com.altinvolkan.imirror` (kod paketi `com.example.screenmirror` olarak kaldı; Play'e yüklenen yalnızca applicationId'dir).
+- Simge: `android/app/src/main/res/drawable/ic_launcher_*.xml` (uyarlanabilir + temalı/monokrom simge).
+- Mağaza görselleri: `store-assets/` (`python make_assets.py` ile yeniden üretilir): 512×512 simge ve 1024×500 öne çıkan grafik.
