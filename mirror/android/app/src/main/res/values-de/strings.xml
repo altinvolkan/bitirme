@@ -66,7 +66,12 @@
     <string name="premium_title">Spiegeln ohne Werbung.</string>
     <string name="premium_body">Alle Spiegelungsfunktionen bleiben kostenlos. Das Abo entfernt nur Werbung und Wasserzeichen.</string>
     <string name="premium_b4">Kein Wasserzeichen auf dem TV</string>
-    <string name="wm_banner">Mit Premium verschwindet dieses Wasserzeichen</string>
+    <string name="wm_free">iMirror · Kostenlose Nutzung</string>
+    <string name="wm_upsell">Werbung und Wasserzeichen loswerden · %1$s</string>
+    <string name="wm_upsell_noprice">Mit Premium Werbung und Wasserzeichen loswerden</string>
+    <string name="wm_reward">Werbung ansehen: 30 Min. ohne Wasserzeichen</string>
+    <string name="wm_reward_ok">30 Minuten ohne Wasserzeichen</string>
+    <string name="wm_reward_wait">Die Werbung ist noch nicht bereit, versuche es gleich noch einmal</string>
     <string name="wm_card_title">Wasserzeichen auf dem TV</string>
     <string name="wm_card_body">Mit Premium Wasserzeichen und Werbung entfernen</string>
     <string name="premium_per_month">/ Monat</string>

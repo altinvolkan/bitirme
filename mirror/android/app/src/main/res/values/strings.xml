@@ -67,7 +67,12 @@
     <string name="premium_title">Mirror without ads.</string>
     <string name="premium_body">All mirroring features stay free. The subscription only removes ads and the watermark.</string>
     <string name="premium_b4">No watermark on the TV</string>
-    <string name="wm_banner">Remove this watermark with Premium</string>
+    <string name="wm_free">iMirror · Free use</string>
+    <string name="wm_upsell">Remove ads and watermarks · %1$s</string>
+    <string name="wm_upsell_noprice">Remove ads and watermarks with Premium</string>
+    <string name="wm_reward">Watch an ad: no watermark for 30 min</string>
+    <string name="wm_reward_ok">Watermark removed for 30 minutes</string>
+    <string name="wm_reward_wait">The ad isn’t ready yet, try again in a moment</string>
     <string name="wm_card_title">Watermark on the TV</string>
     <string name="wm_card_body">Remove it and ads with Premium</string>
     <string name="premium_per_month">/ mo</string>

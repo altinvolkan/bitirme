@@ -307,11 +307,9 @@ class MainActivity : ComponentActivity() {
         }
         if (MirrorService.running) return syncWithService()
         pending = d
-        ads.showInterstitialThen {
-            val needAudio = d.kind == Kind.AIRPLAY && prefs.audio &&
-                checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
-            if (needAudio) audioPermission.launch(Manifest.permission.RECORD_AUDIO) else requestCapture()
-        }
+        val needAudio = d.kind == Kind.AIRPLAY && prefs.audio &&
+            checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+        if (needAudio) audioPermission.launch(Manifest.permission.RECORD_AUDIO) else requestCapture()
     }
 
     private fun requestCapture() {

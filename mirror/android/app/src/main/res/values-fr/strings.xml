@@ -66,7 +66,12 @@
     <string name="premium_title">Recopie sans pubs.</string>
     <string name="premium_body">Toutes les fonctions de recopie restent gratuites. L’abonnement supprime uniquement les pubs et le filigrane.</string>
     <string name="premium_b4">Pas de filigrane sur la TV</string>
-    <string name="wm_banner">Supprime ce filigrane avec Premium</string>
+    <string name="wm_free">iMirror · Utilisation gratuite</string>
+    <string name="wm_upsell">Supprime pubs et filigranes · %1$s</string>
+    <string name="wm_upsell_noprice">Supprime pubs et filigranes avec Premium</string>
+    <string name="wm_reward">Regarder une pub : 30 min sans filigrane</string>
+    <string name="wm_reward_ok">30 minutes sans filigrane</string>
+    <string name="wm_reward_wait">La pub n’est pas encore prête, réessaie dans un instant</string>
     <string name="wm_card_title">Filigrane sur la TV</string>
     <string name="wm_card_body">Supprime le filigrane et les pubs avec Premium</string>
     <string name="premium_per_month">/ mois</string>

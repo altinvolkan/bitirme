@@ -116,6 +116,7 @@ class BillingManager(
             details = list.firstOrNull()
             priceText = details?.subscriptionOfferDetails?.firstOrNull()
                 ?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
+            priceText?.let { Entitlements.setPrice(context, it) }
             main.post(onChanged)
         }
     }

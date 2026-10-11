@@ -66,7 +66,12 @@
     <string name="premium_title">Reklamsız yansıt.</string>
     <string name="premium_body">Yansıtma özelliklerinin hepsi ücretsiz kalır. Abonelik yalnızca reklamları ve filigranı kaldırır.</string>
     <string name="premium_b4">TV’de filigran yok</string>
-    <string name="wm_banner">Bu filigranı Premium ile kaldır</string>
+    <string name="wm_free">iMirror · Ücretsiz kullanım</string>
+    <string name="wm_upsell">Reklam ve filigranlardan kurtul · %1$s</string>
+    <string name="wm_upsell_noprice">Premium ile reklam ve filigranlardan kurtul</string>
+    <string name="wm_reward">Reklam izle: 30 dk filigransız</string>
+    <string name="wm_reward_ok">30 dakika boyunca filigran yok</string>
+    <string name="wm_reward_wait">Reklam henüz hazır değil, birazdan tekrar dene</string>
     <string name="wm_card_title">TV’de filigran görünüyor</string>
     <string name="wm_card_body">Premium ile filigranı ve reklamları kaldır</string>
     <string name="premium_per_month">/ ay</string>

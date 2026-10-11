@@ -66,7 +66,12 @@
     <string name="premium_title">Trasmetti senza pubblicità.</string>
     <string name="premium_body">Tutte le funzioni di mirroring restano gratuite. L’abbonamento rimuove solo pubblicità e filigrana.</string>
     <string name="premium_b4">Nessuna filigrana sulla TV</string>
-    <string name="wm_banner">Rimuovi questa filigrana con Premium</string>
+    <string name="wm_free">iMirror · Uso gratuito</string>
+    <string name="wm_upsell">Elimina pubblicità e filigrane · %1$s</string>
+    <string name="wm_upsell_noprice">Elimina pubblicità e filigrane con Premium</string>
+    <string name="wm_reward">Guarda un annuncio: 30 min senza filigrana</string>
+    <string name="wm_reward_ok">30 minuti senza filigrana</string>
+    <string name="wm_reward_wait">L’annuncio non è ancora pronto, riprova tra poco</string>
     <string name="wm_card_title">Filigrana sulla TV</string>
     <string name="wm_card_body">Rimuovi filigrana e pubblicità con Premium</string>
     <string name="premium_per_month">/ mese</string>

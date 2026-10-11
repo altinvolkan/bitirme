@@ -66,7 +66,12 @@
     <string name="premium_title">Duplica sin anuncios.</string>
     <string name="premium_body">Todas las funciones de duplicado siguen siendo gratis. La suscripción solo quita los anuncios y la marca de agua.</string>
     <string name="premium_b4">Sin marca de agua en la TV</string>
-    <string name="wm_banner">Quita esta marca de agua con Premium</string>
+    <string name="wm_free">iMirror · Uso gratuito</string>
+    <string name="wm_upsell">Quita anuncios y marcas de agua · %1$s</string>
+    <string name="wm_upsell_noprice">Quita anuncios y marcas de agua con Premium</string>
+    <string name="wm_reward">Ver un anuncio: 30 min sin marca de agua</string>
+    <string name="wm_reward_ok">30 minutos sin marca de agua</string>
+    <string name="wm_reward_wait">El anuncio aún no está listo, inténtalo de nuevo en un momento</string>
     <string name="wm_card_title">Marca de agua en la TV</string>
     <string name="wm_card_body">Quita la marca de agua y los anuncios con Premium</string>
     <string name="premium_per_month">/ mes</string>

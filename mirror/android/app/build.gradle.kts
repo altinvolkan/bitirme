@@ -15,6 +15,7 @@ fun prop(name: String, test: String) = (project.findProperty(name) as String?) ?
 val admobAppId = prop("ADMOB_APP_ID", "ca-app-pub-3940256099942544~3347511713")
 val admobBannerId = prop("ADMOB_BANNER_ID", "ca-app-pub-3940256099942544/9214589741")
 val admobInterstitialId = prop("ADMOB_INTERSTITIAL_ID", "ca-app-pub-3940256099942544/1033173712")
+val admobRewardedId = prop("ADMOB_REWARDED_ID", "ca-app-pub-3940256099942544/5224354917")
 
 // Yükleme anahtarı: keystore.properties (git'e girmez) -> storeFile, storePassword, keyAlias, keyPassword
 val keystoreProps = Properties().apply {
@@ -37,6 +38,7 @@ android {
         manifestPlaceholders["admobAppId"] = admobAppId
         buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
         buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"$admobInterstitialId\"")
+        buildConfigField("String", "ADMOB_REWARDED_ID", "\"$admobRewardedId\"")
     }
 
     buildFeatures {

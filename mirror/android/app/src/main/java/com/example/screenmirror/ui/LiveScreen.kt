@@ -23,6 +23,7 @@ class LiveScreen(a: MainActivity) : Screen(a) {
     private lateinit var fpsV: TextView
     private lateinit var bitV: TextView
     private lateinit var latV: TextView
+    private lateinit var bannerSlot: FrameLayout
     private val tick = object : Runnable {
         override fun run() {
             update()
@@ -89,8 +90,13 @@ class LiveScreen(a: MainActivity) : Screen(a) {
             h = dp(60), top = 8,
         )
         scroll.addView(col, FrameLayout.LayoutParams(MATCH, WRAP))
+        val outer = ctx.column {}
+        outer.add(scroll, h = 0, weight = 1f)
+        // Banner "Durdur" düğmesinden uzakta, en altta (yanlışlıkla tıklamayı önlemek için)
+        bannerSlot = FrameLayout(ctx)
+        outer.add(bannerSlot, h = WRAP, top = 8, gravity = Gravity.CENTER_HORIZONTAL)
         update()
-        return scroll
+        return outer
     }
 
     private fun stat(name: String, value: TextView): View {
@@ -113,10 +119,26 @@ class LiveScreen(a: MainActivity) : Screen(a) {
             val t = ctx.column {}
             t.add(ctx.label(str(R.string.wm_card_title), 16f, C.GOLD, 700))
             t.add(ctx.label(str(R.string.wm_card_body), 13f, C.MUTED, 400), top = 2)
+            t.add(
+                ctx.label(str(R.string.wm_reward), 13f, C.ACCENT, 600).apply {
+                    isClickable = true
+                    setPadding(0, dp(8), 0, dp(4))
+                    setOnClickListener { watchRewarded() }
+                },
+            )
             add(t, w = 0, weight = 1f)
             add(ctx.icon(Icons.CHEVRON, C.GOLD, 2f), w = dp(20), h = dp(20))
             setOnClickListener { a.openPremium() }
         }
+    }
+
+    /** İsteğe bağlı ödüllü reklam: izlenirse 30 dk filigran yok. */
+    private fun watchRewarded() {
+        val shown = a.ads.showRewarded {
+            Entitlements.grantReward(a, 30)
+            a.toast(str(R.string.wm_reward_ok))
+        }
+        if (!shown) a.toast(str(R.string.wm_reward_wait))
     }
 
     private fun audioCard(): View {
@@ -153,10 +175,26 @@ class LiveScreen(a: MainActivity) : Screen(a) {
     override fun onShown() {
         handler.removeCallbacks(tick)
         handler.post(tick)
+        showBanner()
     }
 
     override fun onHidden() {
         handler.removeCallbacks(tick)
+        a.ads.detachBanner()
+    }
+
+    override fun onPremiumChanged() = showBanner()
+
+    private fun showBanner() {
+        if (!::bannerSlot.isInitialized) return
+        if (Entitlements.premium) {
+            bannerSlot.visibility = View.GONE
+            a.ads.detachBanner()
+        } else {
+            bannerSlot.visibility = View.VISIBLE
+            bannerSlot.minimumHeight = dp(50)
+            a.ads.showBanner(bannerSlot)
+        }
     }
 
     override fun onBack() {

@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.opengl.EGL14
 import android.opengl.EGLConfig
@@ -35,11 +34,14 @@ import kotlin.math.min
  *
  * VirtualDisplay -> [inputSurface] (SurfaceTexture) -> GL ile çiz + filigran -> [output]
  * (MediaCodec'in input surface'i). Premium kullanıcıda bu sınıf hiç kurulmaz; kurulduktan sonra
- * satın alım olursa filigran çizimi anında durur.
+ * satın alım veya ödüllü reklam olursa filigran çizimi anında durur.
  *
- * Filigran: sağ altta küçük bir "iMirror" etiketi (hep görünür) + belirli aralıklarla kısa süre
- * beliren "Premium ile kaldır" şeridi. Kurulum başarısız olursa [start] null döner ve çağıran
- * doğrudan encoder yüzeyini kullanır (filigransız, yayın bozulmaz).
+ * Aşamalar (yayın başlangıcından itibaren):
+ *  - 0-10 dk: üstte ve altta silik "iMirror · Ücretsiz kullanım" yazısı.
+ *  - 10 dk+: yazı "Reklam ve filigranlardan kurtul · <fiyat>/ay" olur (altın rengi, daha belirgin)
+ *    ve görüntüye çapraz "iMirror" filigranı biner (%10; 30 dk'dan sonra %30).
+ * Kurulum başarısız olursa [start] null döner ve çağıran doğrudan encoder yüzeyini kullanır
+ * (filigransız, yayın bozulmaz).
  */
 class WatermarkRenderer(
     private val context: Context,
@@ -57,8 +59,9 @@ class WatermarkRenderer(
     private var inputSurface: Surface? = null
 
     private var oesTex = 0
-    private var chipTex = 0
-    private var bannerTex = 0
+    private var stripTex = 0
+    private var diagTex = 0
+    private var upsellShown = false
     private var oesProg = 0
     private var ovProg = 0
     private var oesPos = 0
@@ -79,16 +82,15 @@ class WatermarkRenderer(
     private val startMs = SystemClock.elapsedRealtime()
     private var haveFrame = false
     private var lastPtsNs = 0L
-    private var drawnBannerAlpha = 0f
+    private var drawnKey = -1
     @Volatile private var released = false
 
     private val ticker = object : Runnable {
         override fun run() {
             if (released) return
-            val a = if (Entitlements.premium) 0f else bannerAlpha()
-            // Ekran durağanken de şerit canlansın: kaynak kare gelmese de yeniden çiz
-            if (a > 0f || drawnBannerAlpha > 0f) renderFrame(false)
-            handler.postDelayed(this, if (a > 0f) 66L else 500L)
+            // Durum (aşama / çapraz filigran saydamlığı) değiştiyse, ekran durağan olsa da yeniden çiz
+            if (stateKey() != drawnKey) renderFrame(false)
+            handler.postDelayed(this, 500L)
         }
     }
 
@@ -169,8 +171,8 @@ class WatermarkRenderer(
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
 
-        chipTex = upload(chipBitmap())
-        bannerTex = upload(bannerBitmap())
+        stripTex = upload(stripBitmap(context.getString(R.string.wm_free), C.TEXT))
+        diagTex = upload(diagBitmap())
 
         val st = SurfaceTexture(oesTex)
         st.setDefaultBufferSize(width, height)
@@ -221,7 +223,8 @@ class WatermarkRenderer(
             GLES20.glViewport(0, 0, width, height)
             GLES20.glDisable(GLES20.GL_BLEND)
             drawOes()
-            if (!Entitlements.premium) drawOverlays() else drawnBannerAlpha = 0f
+            if (!Entitlements.watermarkFree) drawOverlays()
+            drawnKey = stateKey()
             EGLExt.eglPresentationTimeANDROID(eglDisplay, eglSurface, ts)
             EGL14.eglSwapBuffers(eglDisplay, eglSurface)
         } catch (e: Throwable) {
@@ -245,35 +248,67 @@ class WatermarkRenderer(
     }
 
     private fun drawOverlays() {
+        val t = SystemClock.elapsedRealtime() - startMs
+        if (t >= UPSELL_MS && !upsellShown) {
+            // Fiyat o ana kadar Play'den gelmiş olabilir; metni şimdi üret
+            upsellShown = true
+            GLES20.glDeleteTextures(1, intArrayOf(stripTex), 0)
+            stripTex = upload(stripBitmap(upsellText(), C.GOLD))
+        }
         GLES20.glEnable(GLES20.GL_BLEND)
         GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
         val ref = min(width.toFloat(), height * 1.2f)
-        val margin = ref * 0.03f
+        val margin = ref * 0.025f
 
-        // etiket: sağ alt
-        val chipW = ref * 0.30f
-        val chipH = chipW * CHIP_H / CHIP_W
-        drawQuad(chipTex, width - margin - chipW, margin, chipW, chipH, 0.85f)
+        // üst ve alt şeritler
+        val sw = ref * 0.92f
+        val sh = sw * STRIP_H / STRIP_W
+        val sa = if (upsellShown) 0.85f else 0.45f
+        drawQuad(stripTex, (width - sw) / 2f, height - margin - sh, sw, sh, sa, 0f)
+        drawQuad(stripTex, (width - sw) / 2f, margin, sw, sh, sa, 0f)
 
-        // şerit: etiketin üstünde, ortada; zamanlı belirir
-        val a = bannerAlpha()
-        drawnBannerAlpha = a
-        if (a > 0f) {
-            val bw = ref * 0.9f
-            val bh = bw * BANNER_H / BANNER_W
-            drawQuad(bannerTex, (width - bw) / 2f, margin * 2f + chipH, bw, bh, a)
+        // çapraz filigran
+        val da = diagAlpha(t)
+        if (da > 0f) {
+            val diag = Math.hypot(width.toDouble(), height.toDouble()).toFloat()
+            val cos = Math.cos(Math.toRadians(DIAG_DEG.toDouble())).toFloat()
+            val dw = min(diag * 0.55f, width * 0.95f / cos)
+            val dh = dw * DIAG_H / DIAG_W
+            drawQuad(diagTex, (width - dw) / 2f, (height - dh) / 2f, dw, dh, da, DIAG_DEG)
         }
         GLES20.glDisable(GLES20.GL_BLEND)
     }
 
-    /** (x, y) sol alt köşe, piksel; y yukarı doğru. */
-    private fun drawQuad(tex: Int, x: Float, y: Float, w: Float, h: Float, alpha: Float) {
-        val l = x / width * 2f - 1f
-        val r = (x + w) / width * 2f - 1f
-        val b = y / height * 2f - 1f
-        val t = (y + h) / height * 2f - 1f
+    /** Aşama + çapraz filigran saydamlığı tek sayıda; değişince yeniden çizilir. */
+    private fun stateKey(): Int {
+        val t = SystemClock.elapsedRealtime() - startMs
+        return (if (Entitlements.watermarkFree) 1000000 else 0) +
+            (if (t >= UPSELL_MS) 100000 else 0) + (diagAlpha(t) * 1000f).toInt()
+    }
+
+    /** 10 dk'dan sonra %10, 30 dk'dan sonra %30; geçişler 6 sn'de yumuşar. */
+    private fun diagAlpha(t: Long): Float {
+        fun ramp(from: Long) = ((t - from) / RAMP_MS.toFloat()).coerceIn(0f, 1f)
+        return DIAG_A1 * ramp(UPSELL_MS) + (DIAG_A2 - DIAG_A1) * ramp(DIAG2_MS)
+    }
+
+    /** (x, y) sol alt köşe, piksel; y yukarı. [deg] merkez etrafında saat yönünün tersine döndürür. */
+    private fun drawQuad(tex: Int, x: Float, y: Float, w: Float, h: Float, alpha: Float, deg: Float) {
+        val cx = x + w / 2f
+        val cy = y + h / 2f
+        val rad = Math.toRadians(deg.toDouble())
+        val c = Math.cos(rad).toFloat()
+        val sn = Math.sin(rad).toFloat()
+        // köşeler: sol-alt, sağ-alt, sol-üst, sağ-üst
+        val dx = floatArrayOf(-w / 2f, w / 2f, -w / 2f, w / 2f)
+        val dy = floatArrayOf(-h / 2f, -h / 2f, h / 2f, h / 2f)
         quadPos.position(0)
-        quadPos.put(floatArrayOf(l, b, r, b, l, t, r, t))
+        for (i in 0 until 4) {
+            val px = cx + dx[i] * c - dy[i] * sn
+            val py = cy + dx[i] * sn + dy[i] * c
+            quadPos.put(px / width * 2f - 1f)
+            quadPos.put(py / height * 2f - 1f)
+        }
         quadPos.position(0)
         GLES20.glUseProgram(ovProg)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
@@ -289,62 +324,44 @@ class WatermarkRenderer(
         GLES20.glDisableVertexAttribArray(ovUv)
     }
 
-    /** Şerit: ilk gösterim [FIRST_MS]'de, sonra her [PERIOD_MS]'de [SHOW_MS] süreyle (yumuşak giriş/çıkış). */
-    private fun bannerAlpha(): Float {
-        val t = SystemClock.elapsedRealtime() - startMs
-        if (t < FIRST_MS) return 0f
-        val p = (t - FIRST_MS) % PERIOD_MS
-        if (p >= SHOW_MS) return 0f
-        return min(1f, min(p / FADE_MS, (SHOW_MS - p) / FADE_MS)).coerceIn(0f, 1f)
+    private fun upsellText(): String {
+        val price = Entitlements.priceText
+        return if (price.isEmpty()) context.getString(R.string.wm_upsell_noprice)
+        else context.getString(R.string.wm_upsell, context.getString(R.string.price_per_month, price))
     }
 
     // --- bitmap'ler ---
 
-    private fun chipBitmap(): Bitmap {
-        val bmp = Bitmap.createBitmap(CHIP_W.toInt(), CHIP_H.toInt(), Bitmap.Config.ARGB_8888)
+    /** Üst/alt şerit yazısı: gölgeli düz yazı, uzunsa sığana kadar küçülür. */
+    private fun stripBitmap(text: String, color: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(STRIP_W.toInt(), STRIP_H.toInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        val rect = RectF(2f, 2f, CHIP_W - 2f, CHIP_H - 2f)
-        p.color = (200 shl 24) or (C.BG and 0xFFFFFF)
-        c.drawRoundRect(rect, CHIP_H / 2, CHIP_H / 2, p)
-        p.style = Paint.Style.STROKE
-        p.strokeWidth = 3f
-        p.color = C.LINE2
-        c.drawRoundRect(rect, CHIP_H / 2, CHIP_H / 2, p)
-        p.style = Paint.Style.FILL
-        p.color = C.ACCENT
-        c.drawCircle(CHIP_H / 2f + 4f, CHIP_H / 2f, 11f, p)
-        p.color = C.TEXT
-        p.typeface = Fonts.display(700)
-        p.textSize = 46f
-        c.drawText(context.getString(R.string.app_name), CHIP_H / 2f + 30f, CHIP_H / 2f + 16f, p)
-        return bmp
-    }
-
-    private fun bannerBitmap(): Bitmap {
-        val bmp = Bitmap.createBitmap(BANNER_W.toInt(), BANNER_H.toInt(), Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        val rect = RectF(3f, 3f, BANNER_W - 3f, BANNER_H - 3f)
-        p.color = (240 shl 24) or (C.GOLD_TINT and 0xFFFFFF)
-        c.drawRoundRect(rect, BANNER_H / 2, BANNER_H / 2, p)
-        p.style = Paint.Style.STROKE
-        p.strokeWidth = 4f
-        p.color = C.GOLD
-        c.drawRoundRect(rect, BANNER_H / 2, BANNER_H / 2, p)
-        p.style = Paint.Style.FILL
-        p.color = C.GOLD
-        c.drawCircle(BANNER_H / 2f + 8f, BANNER_H / 2f, 14f, p)
         p.typeface = Fonts.body(700)
-        val text = context.getString(R.string.wm_banner)
-        val maxW = BANNER_W - BANNER_H - 60f
-        var size = 56f
+        var size = 54f
         p.textSize = size
-        while (p.measureText(text) > maxW && size > 20f) {
+        val maxW = STRIP_W - 40f
+        while (p.measureText(text) > maxW && size > 18f) {
             size -= 2f
             p.textSize = size
         }
-        c.drawText(text, BANNER_H / 2f + 38f, BANNER_H / 2f + size * 0.35f, p)
+        p.textAlign = Paint.Align.CENTER
+        p.setShadowLayer(6f, 0f, 2f, 0xCC000000.toInt())
+        p.color = color
+        c.drawText(text, STRIP_W / 2f, STRIP_H / 2f + size * 0.35f, p)
+        return bmp
+    }
+
+    /** Çapraz "iMirror" yazısı (beyaz); saydamlık çizimde verilir. */
+    private fun diagBitmap(): Bitmap {
+        val bmp = Bitmap.createBitmap(DIAG_W.toInt(), DIAG_H.toInt(), Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.typeface = Fonts.display(800)
+        p.textSize = 300f
+        p.color = 0xFFFFFFFF.toInt()
+        p.textAlign = Paint.Align.CENTER
+        c.drawText(context.getString(R.string.app_name), DIAG_W / 2f, DIAG_H / 2f + 100f, p)
         return bmp
     }
 
@@ -390,14 +407,18 @@ class WatermarkRenderer(
     companion object {
         private const val TAG = "ScreenMirrorWm"
         private const val EGL_RECORDABLE_ANDROID = 0x3142
-        private const val CHIP_W = 360f
-        private const val CHIP_H = 96f
-        private const val BANNER_W = 1000f
-        private const val BANNER_H = 150f
-        private const val FIRST_MS = 40_000L
-        private const val PERIOD_MS = 150_000L
-        private const val SHOW_MS = 10_000f
-        private const val FADE_MS = 700f
+        private const val STRIP_W = 1000f
+        private const val STRIP_H = 80f
+        private const val DIAG_W = 1100f
+        private const val DIAG_H = 380f
+        private const val DIAG_DEG = 25f
+
+        /** İkinci aşama (satın alma çağrısı + çapraz filigran) ve filigranın koyulaşması. */
+        private const val UPSELL_MS = 10 * 60_000L
+        private const val DIAG2_MS = 30 * 60_000L
+        private const val RAMP_MS = 6_000L
+        private const val DIAG_A1 = 0.10f
+        private const val DIAG_A2 = 0.30f
 
         private const val OES_VS = """
             uniform mat4 uTex;

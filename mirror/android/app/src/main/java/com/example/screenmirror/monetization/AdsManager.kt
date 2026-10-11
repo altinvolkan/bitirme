@@ -14,6 +14,8 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 import java.util.concurrent.atomic.AtomicBoolean
@@ -31,6 +33,7 @@ class AdsManager(private val activity: Activity) {
     private var interstitial: InterstitialAd? = null
     private var lastInterstitialAt = 0L
     private var banner: AdView? = null
+    private var rewarded: RewardedAd? = null
 
     /** Onay akışını çalıştırır; izin varsa SDK'yı başlatır. [ready] SDK hazır olunca çağrılır. */
     fun start(ready: () -> Unit) {
@@ -53,7 +56,8 @@ class AdsManager(private val activity: Activity) {
         if (!sdkStarted.compareAndSet(false, true)) return
         MobileAds.initialize(activity) {
             activity.runOnUiThread {
-                preloadInterstitial()
+                if (INTERSTITIAL_ENABLED) preloadInterstitial()
+                preloadRewarded()
                 ready()
             }
         }
@@ -135,6 +139,49 @@ class AdsManager(private val activity: Activity) {
         ad.show(activity)
     }
 
+    private fun preloadRewarded() {
+        if (Entitlements.premium || rewarded != null) return
+        RewardedAd.load(
+            activity, BuildConfig.ADMOB_REWARDED_ID, AdRequest.Builder().build(),
+            object : RewardedAdLoadCallback() {
+                override fun onAdLoaded(ad: RewardedAd) {
+                    rewarded = ad
+                }
+
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    rewarded = null
+                }
+            },
+        )
+    }
+
+    /** Ödüllü reklam hazır mı? */
+    val rewardedReady: Boolean get() = rewarded != null
+
+    /**
+     * Kullanıcının isteğiyle ödüllü reklam gösterir. Reklam sonuna kadar izlenirse [onReward]
+     * çağrılır. Hazır değilse false döner (çağıran kullanıcıya haber verir) ve yeniden yüklemeyi dener.
+     */
+    fun showRewarded(onReward: () -> Unit): Boolean {
+        val ad = rewarded
+        if (ad == null) {
+            preloadRewarded()
+            return false
+        }
+        rewarded = null
+        ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+            override fun onAdDismissedFullScreenContent() {
+                preloadRewarded()
+            }
+
+            override fun onAdFailedToShowFullScreenContent(error: AdError) {
+                preloadRewarded()
+            }
+        }
+        ad.show(activity) { onReward() }
+        return true
+    }
+
     fun destroy() {
         banner?.destroy()
         banner = null
@@ -142,5 +189,8 @@ class AdsManager(private val activity: Activity) {
 
     companion object {
         private const val COOLDOWN_MS = 3 * 60 * 1000L
+
+        /** Başlatma öncesi tam ekran reklam kapalı (ilk sürüm: yalnızca banner + isteğe bağlı ödüllü reklam). */
+        private const val INTERSTITIAL_ENABLED = false
     }
 }
