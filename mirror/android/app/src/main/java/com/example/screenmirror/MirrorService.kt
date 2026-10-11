@@ -19,6 +19,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.Display
 import android.view.Surface
+import com.example.screenmirror.monetization.Entitlements
 import androidx.core.content.IntentCompat
 import kotlin.concurrent.thread
 import kotlin.math.max
@@ -193,9 +194,11 @@ class MirrorService : Service() {
         val (ew, eh) = targetSize()
         LiveInfo.width = ew
         LiveInfo.height = eh
+        val (px, py) = bandsFor(ew, eh)
         encoder = ScreenEncoder(
             proj, ew, eh, resources.displayMetrics.densityDpi, sink!!,
             bitrate = bitrateBps, fps = AIRPLAY_FPS, watermarkContext = applicationContext,
+            padX = px, padY = py,
         ).also { it.start() }
         watchRotation()
 
@@ -233,6 +236,22 @@ class MirrorService : Service() {
         return alignedSize((sw * scale).toInt(), (sh * scale).toInt())
     }
 
+    /**
+     * Ücretsiz sürümde filigran yazıları görüntünün üstüne değil, TV'de zaten siyah kalacak boşluğa
+     * basılır: görüntü alıcı tuvalinden dar/kısa kalıyorsa kalan boşluğun bir kısmı (en çok [BAND_PX])
+     * siyah bant olarak kareye eklenir. Yatay görüntüde üst+alt, dikeyde sol+sağ. Boşluk yoksa 0.
+     */
+    private fun bandsFor(w: Int, h: Int): Pair<Int, Int> {
+        if (canvasW <= 0 || Entitlements.watermarkFree) return 0 to 0
+        fun band(spare: Int): Int {
+            val b = min(spare / 2, BAND_PX) and 0xF.inv()
+            return if (b < 32) 0 else b
+        }
+        val spareW = canvasW - w
+        val spareH = canvasH - h
+        return if (spareW > spareH) band(spareW) to 0 else 0 to band(spareH)
+    }
+
     /** Encoder'lar genelde 16'nın katını sever. */
     private fun alignedSize(w: Int, h: Int) = max(16, w and 0xF.inv()) to max(16, h and 0xF.inv())
 
@@ -245,7 +264,8 @@ class MirrorService : Service() {
         val enc = encoder ?: return
         val (w, h) = targetSize()
         if (w != enc.currentWidth || h != enc.currentHeight) {
-            enc.resize(w, h)
+            val (px, py) = bandsFor(w, h)
+            enc.resize(w, h, px, py)
             enc.requestKeyFrame()
             LiveInfo.width = w
             LiveInfo.height = h
@@ -323,6 +343,7 @@ class MirrorService : Service() {
         private const val NOTIF_ID = 1
         private const val MAX_SIDE = 1280 // UDP modunda uzun kenar; 720p sınıfı => düşük gecikme
         private const val AIRPLAY_FPS = 30
+        private const val BAND_PX = 64 // filigran bantlarının en çok kalınlığı
 
         @Volatile
         var running = false

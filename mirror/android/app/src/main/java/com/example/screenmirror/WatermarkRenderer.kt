@@ -45,8 +45,14 @@ import kotlin.math.min
  */
 class WatermarkRenderer(
     private val context: Context,
+    /** Encoder'a giden toplam kare boyutu (içerik + siyah bantlar). */
     private val width: Int,
     private val height: Int,
+    /** Telefon görüntüsünün boyutu; karenin ortasına, [padX]/[padY] ofsetiyle yerleşir. */
+    private val contentW: Int,
+    private val contentH: Int,
+    private val padX: Int,
+    private val padY: Int,
     private val output: Surface,
 ) {
     private val thread = HandlerThread("wm-gl", Process.THREAD_PRIORITY_DISPLAY).apply { start() }
@@ -175,7 +181,7 @@ class WatermarkRenderer(
         diagTex = upload(diagBitmap())
 
         val st = SurfaceTexture(oesTex)
-        st.setDefaultBufferSize(width, height)
+        st.setDefaultBufferSize(contentW, contentH)
         st.setOnFrameAvailableListener({ renderFrame(true) }, handler)
         surfaceTexture = st
         inputSurface = Surface(st)
@@ -220,9 +226,16 @@ class WatermarkRenderer(
             if (ts <= lastPtsNs) ts = lastPtsNs + 1_000_000L
             lastPtsNs = ts
 
-            GLES20.glViewport(0, 0, width, height)
             GLES20.glDisable(GLES20.GL_BLEND)
+            if (padX > 0 || padY > 0) {
+                // Bantlar siyah; görüntü ortada, bantlara yazı basılır (görüntünün üstüne değil)
+                GLES20.glViewport(0, 0, width, height)
+                GLES20.glClearColor(0f, 0f, 0f, 1f)
+                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+            }
+            GLES20.glViewport(padX, padY, contentW, contentH)
             drawOes()
+            GLES20.glViewport(0, 0, width, height)
             if (!Entitlements.watermarkFree) drawOverlays()
             drawnKey = stateKey()
             EGLExt.eglPresentationTimeANDROID(eglDisplay, eglSurface, ts)
@@ -257,15 +270,29 @@ class WatermarkRenderer(
         }
         GLES20.glEnable(GLES20.GL_BLEND)
         GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
-        val ref = min(width.toFloat(), height * 1.2f)
-        val margin = ref * 0.025f
-
-        // üst ve alt şeritler
-        val sw = ref * 0.92f
-        val sh = sw * STRIP_H / STRIP_W
+        // yazılar yalnızca siyah bantlarda: yatay görüntüde üst/alt, dikeyde sol/sağ (dönük)
         val sa = if (upsellShown) 0.85f else 0.45f
-        drawQuad(stripTex, (width - sw) / 2f, height - margin - sh, sw, sh, sa, 0f)
-        drawQuad(stripTex, (width - sw) / 2f, margin, sw, sh, sa, 0f)
+        if (padY > 0) {
+            var qh = padY * 0.8f
+            var qw = qh * STRIP_W / STRIP_H
+            if (qw > width * 0.95f) {
+                qw = width * 0.95f
+                qh = qw * STRIP_H / STRIP_W
+            }
+            val x = (width - qw) / 2f
+            drawQuad(stripTex, x, height - padY + (padY - qh) / 2f, qw, qh, sa, 0f)
+            drawQuad(stripTex, x, (padY - qh) / 2f, qw, qh, sa, 0f)
+        } else if (padX > 0) {
+            var qh = padX * 0.8f
+            var qw = qh * STRIP_W / STRIP_H
+            if (qw > height * 0.95f) {
+                qw = height * 0.95f
+                qh = qw * STRIP_H / STRIP_W
+            }
+            val y = (height - qh) / 2f
+            drawQuad(stripTex, padX / 2f - qw / 2f, y, qw, qh, sa, 90f)
+            drawQuad(stripTex, width - padX / 2f - qw / 2f, y, qw, qh, sa, -90f)
+        }
 
         // çapraz filigran
         val da = diagAlpha(t)

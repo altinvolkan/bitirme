@@ -28,6 +28,9 @@ class ScreenEncoder(
     private val fps: Int = 60,
     /** Verilirse ve kullanıcı premium değilse görüntüye filigran basılır. */
     private val watermarkContext: Context? = null,
+    /** Filigran için görüntünün yanlarına/üstüne-altına eklenen siyah bant kalınlığı (px, 16'nın katı). */
+    private var padX: Int = 0,
+    private var padY: Int = 0,
 ) {
     private var display: VirtualDisplay? = null
     private var drain: Drain? = null
@@ -37,7 +40,7 @@ class ScreenEncoder(
     val currentHeight get() = height
 
     fun start() = synchronized(lock) {
-        val d = Drain(width, height)
+        val d = Drain(width, height, padX, padY)
         display = projection.createVirtualDisplay(
             "screen-mirror", width, height, dpi,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
@@ -48,12 +51,14 @@ class ScreenEncoder(
     }
 
     /** Ekran döndü veya tuval değişti: yeni boyutla encoder'ı yeniden kur. */
-    fun resize(newWidth: Int, newHeight: Int) = synchronized(lock) {
+    fun resize(newWidth: Int, newHeight: Int, newPadX: Int = 0, newPadY: Int = 0) = synchronized(lock) {
         val disp = display ?: return@synchronized
         if (newWidth == width && newHeight == height) return@synchronized
 
         val old = drain
-        val fresh = Drain(newWidth, newHeight) // yeni codec + yüzey hazır
+        padX = newPadX
+        padY = newPadY
+        val fresh = Drain(newWidth, newHeight, newPadX, newPadY) // yeni codec + yüzey hazır
         disp.setSurface(fresh.surface)
         disp.resize(newWidth, newHeight, dpi)
         old?.close() // eski codec artık kare üretmiyor
@@ -74,10 +79,13 @@ class ScreenEncoder(
         display = null
     }
 
-    /** Tek bir codec örneği ve onu boşaltan thread. */
-    private inner class Drain(w: Int, h: Int) {
-        private val codec: MediaCodec
-        private val encoderSurface: Surface
+    /**
+     * Tek bir codec örneği ve onu boşaltan thread. [cw]x[ch] = telefon görüntüsü; [px]/[py] = filigran
+     * bantları. Codec kare boyutu (cw+2px)x(ch+2py)'dir. Filigran kurulamazsa bantsız yeniden kurulur.
+     */
+    private inner class Drain(cw: Int, ch: Int, px: Int, py: Int) {
+        private lateinit var codec: MediaCodec
+        private lateinit var encoderSurface: Surface
 
         /** VirtualDisplay'in çizeceği yüzey: filigran varsa renderer'ın, yoksa doğrudan encoder'ın. */
         val surface: Surface
@@ -87,6 +95,29 @@ class ScreenEncoder(
         private var thread: Thread? = null
 
         init {
+            var target: Surface
+            val ctx = watermarkContext
+            if (ctx != null && !Entitlements.premium) {
+                configure(cw + 2 * px, ch + 2 * py)
+                val r = WatermarkRenderer(ctx, cw + 2 * px, ch + 2 * py, cw, ch, px, py, encoderSurface)
+                val input = r.start()
+                if (input != null) {
+                    watermark = r
+                    target = input
+                } else {
+                    // GL kurulamadı: bantsız, doğrudan yeniden kur
+                    releaseCodec()
+                    configure(cw, ch)
+                    target = encoderSurface
+                }
+            } else {
+                configure(cw, ch)
+                target = encoderSurface
+            }
+            surface = target
+        }
+
+        private fun configure(w: Int, h: Int) {
             val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, w, h).apply {
                 setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
                 setInteger(MediaFormat.KEY_BIT_RATE, bitrate)
@@ -106,17 +137,15 @@ class ScreenEncoder(
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
             encoderSurface = codec.createInputSurface()
             codec.start()
-            var target = encoderSurface
-            val ctx = watermarkContext
-            if (ctx != null && !Entitlements.premium) {
-                val r = WatermarkRenderer(ctx, w, h, encoderSurface)
-                val input = r.start()
-                if (input != null) {
-                    watermark = r
-                    target = input
-                }
+        }
+
+        private fun releaseCodec() {
+            try {
+                codec.stop()
+            } catch (_: IllegalStateException) {
             }
-            surface = target
+            codec.release()
+            encoderSurface.release()
         }
 
         fun begin() {
@@ -138,6 +167,8 @@ class ScreenEncoder(
             val info = MediaCodec.BufferInfo()
             var config: ByteArray? = null
             var scratch = ByteArray(256 * 1024)
+            var frames = 0
+            var windowStart = System.nanoTime()
             while (running) {
                 val idx = try {
                     codec.dequeueOutputBuffer(info, 10_000)
@@ -161,6 +192,14 @@ class ScreenEncoder(
                         if (cfg != null) System.arraycopy(cfg, 0, scratch, 0, prefix)
                         out.get(scratch, prefix, info.size)
                         sender.sendFrame(scratch, total, key)
+                        // Gerçek (ölçülen) kare hızı: arayüzdeki "Kare hızı" bunu gösterir
+                        frames++
+                        val now = System.nanoTime()
+                        if (now - windowStart >= 1_000_000_000L) {
+                            LiveInfo.fps = (frames * 1_000_000_000L / (now - windowStart)).toInt()
+                            frames = 0
+                            windowStart = now
+                        }
                     }
                 }
                 try {
@@ -176,12 +215,7 @@ class ScreenEncoder(
             thread?.join(500)
             watermark?.release()
             watermark = null
-            try {
-                codec.stop()
-            } catch (_: IllegalStateException) {
-            }
-            codec.release()
-            encoderSurface.release()
+            releaseCodec()
         }
     }
 }
