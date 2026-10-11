@@ -29,7 +29,11 @@ class UiPrefs(context: Context) {
         }
 
     var bitrateIdx: Int
-        get() = sp.getInt("bitrate_idx", 1).coerceIn(0, BITRATES.lastIndex)
+        get() {
+            // Eski sürümde kaydedilmiş geçersiz bir seçim varsa varsayılana (8 Mbps) dön
+            val v = sp.getInt("bitrate_idx", 1)
+            return if (v in 0..BITRATES.lastIndex) v else 1
+        }
         set(v) {
             sp.edit().putInt("bitrate_idx", v).apply()
         }
