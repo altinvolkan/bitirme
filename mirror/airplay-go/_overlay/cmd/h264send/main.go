@@ -1,7 +1,7 @@
 // h264send: Android'e geçmeden önce AirPlay göndericiyi bir Linux makinede,
 // kendi Apple TV'nize karşı denemek için küçük bir komut satırı aracı.
 //
-//	ffmpeg -re -f lavfi -i testsrc2=size=1280x720:rate=30 \
+//	ffmpeg -nostats -loglevel error -re -f lavfi -i testsrc2=size=1280x720:rate=30 \
 //	  -c:v libx264 -profile:v baseline -preset ultrafast -tune zerolatency \
 //	  -g 30 -bsf:v h264_mp4toannexb -x264-params repeat-headers=1 \
 //	  -f h264 - | go run ./cmd/h264send -ip 192.168.1.50
@@ -13,7 +13,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -64,7 +63,7 @@ func main() {
 
 	go func() {
 		<-l.pinCh
-		fmt.Print("TV'deki PIN: ")
+		fmt.Fprintln(os.Stderr, "\n>>> TV ekraninda gorunen kodu yazip Enter'a basin:")
 		console := openConsole() // stdin video akışı olduğu için PIN'i konsoldan oku
 		line, _ := bufio.NewReader(console).ReadString('\n')
 		s.SubmitPin(strings.TrimSpace(line))
@@ -103,32 +102,6 @@ func feed(s *sender.Session) {
 			return
 		}
 	}
-}
-
-var startCode = []byte{0, 0, 0, 1}
-
-// nextAccessUnit: iki ardışık AUD (9) arasını bir AU sayar (ffmpeg -bsf ile AUD ekler);
-// AUD yoksa her SPS veya slice başlangıcında kesmek gerekir, bu araç AUD'a güvenir.
-func nextAccessUnit(b []byte) (au, rest []byte, ok bool) {
-	first := bytes.Index(b, startCode)
-	if first < 0 {
-		return nil, b, false
-	}
-	next := bytes.Index(b[first+4:], append(startCode[:len(startCode):len(startCode)], 0x09))
-	if next < 0 {
-		return nil, b, false
-	}
-	end := first + 4 + next
-	return b[first:end], b[end:], true
-}
-
-func isKey(au []byte) bool {
-	for i := 0; i+4 < len(au); i++ {
-		if au[i] == 0 && au[i+1] == 0 && au[i+2] == 0 && au[i+3] == 1 && au[i+4]&0x1f == 5 {
-			return true
-		}
-	}
-	return false
 }
 
 // openConsole: stdin ffmpeg çıktısıyla dolu olduğundan klavye için terminali açar.
