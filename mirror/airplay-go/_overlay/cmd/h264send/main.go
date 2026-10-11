@@ -43,7 +43,9 @@ func main() {
 	port := flag.Int("port", 7000, "AirPlay portu")
 	txt := flag.String("txt", "", "TXT kayıtları, virgülle ayrılmış anahtar=değer")
 	creds := flag.String("creds", "", "kayıtlı kimlik JSON dosyası")
+	debug := flag.Bool("debug", false, "ayrintili protokol logu")
 	flag.Parse()
+	sender.SetDebug(*debug)
 	if *ip == "" {
 		log.Fatal("-ip gerekli")
 	}

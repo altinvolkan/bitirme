@@ -34,6 +34,9 @@ type Listener interface {
 	OnCredentials(deviceID string, json string)
 }
 
+// SetDebug protokol ayrintili loglarini acar (stderr / logcat).
+func SetDebug(on bool) { airplay.SetDebugMode(on) }
+
 // Session tek bir Apple TV'ye tek bir yansıtma oturumudur.
 type Session struct {
 	dev      airplay.AirPlayDevice
@@ -189,12 +192,18 @@ func (s *Session) pair(ctx context.Context, client *airplay.AirPlayClient, info 
 		}
 	}
 
-	needPIN := info.RequiredPairingCredential() == airplay.PairingCredentialPIN ||
-		info.RequiredPairingCredential() == airplay.PairingCredentialPassword
+	need := info.RequiredPairingCredential()
+	s.listener.OnStatus("pairing", fmt.Sprintf(
+		"alici: %s, istenen kimlik=%d (0=yok 1=PIN 2=parola), parola_var=%v, kayitli_kimlik=%v",
+		info.Name, need, info.RequiresPassword(), s.saved != ""))
+	needPIN := need == airplay.PairingCredentialPIN || need == airplay.PairingCredentialPassword
 	if !needPIN {
-		if err := client.Pair(ctx, ""); err == nil {
+		err := client.Pair(ctx, "")
+		if err == nil {
+			s.listener.OnStatus("pairing", "gecici eslestirme basarili (PIN gerekmedi)")
 			return client, info, nil
 		}
+		s.listener.OnStatus("pairing", "gecici eslestirme basarisiz: "+err.Error()+"; PIN akisina geciliyor")
 		// Geçici eşleştirme başarısız: temiz bağlantıda PIN akışına geç.
 		_ = client.Close()
 		var cerr error
