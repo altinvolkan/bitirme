@@ -23,6 +23,8 @@ Android telefondan Apple TV'ye ekran yansıtma. Kullanıcı Türkçe konuşur, k
 3. Play: kapalı test 12 kişi/14 gün, FGS (mediaProjection) bildirimi + demo video, abonelik `premium_monthly` 99 TRY, gizlilik URL'si (`MainActivity.PRIVACY_URL` yer tutucu), AdMob gerçek kimlikler + app-ads.txt.
 4. Açık risk: AirPlay protokolü tersine mühendislikle (doubletake, LGPL) - yasal değerlendirme kullanıcıda. Apple/Android logosu simgede/ekran görüntüsünde kullanma. Uygulama simgesi: telefon + büyük ekran, ikisinde de kırmızı (ısırılmamış) elma - kullanıcının kararı, Apple marka riski var (Apple logosu değil, meyve çizimi); Play şikayet ederse `ic_launcher_foreground.xml` değişir.
 
+5. Android TV'ye alıcı uygulamasız yansıtma = Cast Streaming (kullanıcı C seçeneğini istedi): `mirror/docs/CAST_MIRRORING_PLAN.md`. Yerelde, Open Screen kaynağı okunarak ve gerçek TV ile yapılmalı; `tvreceiver` modülü geri dönüş.
+
 ## Kurallar
 - Kullanıcı Windows PowerShell kullanıyor; betikler ASCII (Türkçe karakter yok, PS5 bozuyor).
 - Başlatma öncesi tam ekran reklam istenmiyor; filigran/çapraz yazı kararı kullanıcının (%30 kalacak).
