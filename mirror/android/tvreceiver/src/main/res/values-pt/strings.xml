@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_waiting">Aguardando seu celular…</string>
+    <string name="tv_hint">Abra o iMirror no celular (mesmo Wi-Fi) e escolha esta TV.</string>
+    <string name="tv_address">Endereço: %1$s</string>
+    <string name="tv_no_network">Sem conexão de rede</string>
+    <string name="tv_port_error">Não foi possível abrir a porta %1$d</string>
+</resources>

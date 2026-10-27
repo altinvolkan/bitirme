@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_waiting">Telefon bekleniyor…</string>
+    <string name="tv_hint">Telefonunda iMirror\'u aç (aynı Wi-Fi) ve bu TV\'yi seç.</string>
+    <string name="tv_address">Adres: %1$s</string>
+    <string name="tv_no_network">Ağ bağlantısı yok</string>
+    <string name="tv_port_error">%1$d portu açılamadı</string>
+</resources>

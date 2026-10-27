@@ -45,6 +45,8 @@
     <string name="tip1">Celular e Apple TV precisam estar no mesmo Wi-Fi. Uma rede de 5 GHz funciona melhor.</string>
     <string name="tip2">Na Apple TV, defina Ajustes > AirPlay e HomeKit > Permitir acesso como “Qualquer pessoa na mesma rede”.</string>
     <string name="tip3">A Apple TV pode estar em repouso; ative-a com o controle remoto.</string>
+    <string name="tip4">No Android TV, instale o app gratuito “iMirror TV” e abra-o.</string>
+    <string name="subtitle_androidtv">Android TV</string>
     <string name="nodevice_ip_label">Ou digite o endereço IP</string>
     <string name="nodevice_connect">Conectar</string>
     <string name="nodevice_retry">Procurar de novo</string>

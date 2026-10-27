@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_waiting">Warte auf dein Handy …</string>
+    <string name="tv_hint">Öffne iMirror auf deinem Handy (gleiches WLAN) und wähle diesen Fernseher.</string>
+    <string name="tv_address">Adresse: %1$s</string>
+    <string name="tv_no_network">Keine Netzwerkverbindung</string>
+    <string name="tv_port_error">Port %1$d konnte nicht geöffnet werden</string>
+</resources>

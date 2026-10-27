@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+        <!-- büyük ekran (sol alt köşesi telefona yer açar) -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M43,63H74a7,7 0 0 0 7,-7V34a7,7 0 0 0 -7,-7H34a7,7 0 0 0 -7,7V47" />
+        <!-- telefon -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M25.5,52H33.5a5,5 0 0 1 5,5V79a5,5 0 0 1 -5,5H25.5a5,5 0 0 1 -5,-5V57a5,5 0 0 1 5,-5z" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:pathData="M27.5,57.5H31.5" />
+        <!-- elma: telefonda ve ekranda aynı görsel -->
+        <group
+            android:translateX="54"
+            android:translateY="45"
+            android:scaleX="1.05"
+            android:scaleY="1.05">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M0,-4.5C-1.5,-6.2 -7.5,-6.5 -7.5,0C-7.5,5 -4,8 -2.5,8C-1.2,8 -0.8,7.4 0,7.4C0.8,7.4 1.2,8 2.5,8C4,8 7.5,5 7.5,0C7.5,-6.5 1.5,-6.2 0,-4.5Z" />
+            <path
+                android:fillColor="#00000000"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.1"
+                android:strokeLineCap="round"
+                android:pathData="M-0.3,-4.4C-0.3,-6 0,-7 0.7,-8.3" />
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M0.8,-5.4C1.8,-8.6 5,-9.4 7,-8.6C6.4,-6 3.6,-4.4 0.8,-5.4Z" />
+        </group>
+        <!-- elma: telefonda ve ekranda aynı görsel -->
+        <group
+            android:translateX="29.5"
+            android:translateY="69"
+            android:scaleX="0.62"
+            android:scaleY="0.62">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M0,-4.5C-1.5,-6.2 -7.5,-6.5 -7.5,0C-7.5,5 -4,8 -2.5,8C-1.2,8 -0.8,7.4 0,7.4C0.8,7.4 1.2,8 2.5,8C4,8 7.5,5 7.5,0C7.5,-6.5 1.5,-6.2 0,-4.5Z" />
+            <path
+                android:fillColor="#00000000"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.1"
+                android:strokeLineCap="round"
+                android:pathData="M-0.3,-4.4C-0.3,-6 0,-7 0.7,-8.3" />
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M0.8,-5.4C1.8,-8.6 5,-9.4 7,-8.6C6.4,-6 3.6,-4.4 0.8,-5.4Z" />
+        </group>
+    </group>
+</vector>

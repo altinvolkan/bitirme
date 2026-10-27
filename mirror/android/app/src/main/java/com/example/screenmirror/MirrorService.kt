@@ -123,7 +123,7 @@ class MirrorService : Service() {
         val host = intent.getStringExtra(EXTRA_HOST) ?: return false
         val port = intent.getIntExtra(EXTRA_PORT, Protocol.DEFAULT_PORT)
         val (w, h) = targetSize()
-        LiveInfo.reset(host, MODE_UDP, 0, 0, 30)
+        LiveInfo.reset(intent.getStringExtra(EXTRA_NAME) ?: host, MODE_UDP, bitrateBps / 1_000_000, 0, targetFps)
         LiveInfo.width = w
         LiveInfo.height = h
         LiveInfo.startedAtMs = SystemClock.elapsedRealtime()
@@ -134,11 +134,21 @@ class MirrorService : Service() {
         sink = snd
         enc[0] = ScreenEncoder(
             proj, w, h, resources.displayMetrics.densityDpi, snd,
-            fps = targetFps, watermarkContext = applicationContext,
+            bitrate = bitrateBps, fps = targetFps, watermarkContext = applicationContext,
+            padX = bandsFor(w, h).first, padY = bandsFor(w, h).second,
         )
         encoder = enc[0]
         enc[0]!!.start()
         watchRotation()
+
+        // Android TV alıcısı sesi de çalar (tvOS alıcısı ses paketlerini yok sayar)
+        if (hasAudioPermission()) {
+            val capturer = AudioCapturer(proj, snd)
+            if (capturer.start()) {
+                capturer.muted = audioMuted
+                audio = capturer
+            }
+        }
         return true
     }
 
@@ -244,13 +254,16 @@ class MirrorService : Service() {
      * siyah bant olarak kareye eklenir. Yatay görüntüde üst+alt, dikeyde sol+sağ. Boşluk yoksa 0.
      */
     private fun bandsFor(w: Int, h: Int): Pair<Int, Int> {
-        if (canvasW <= 0 || Entitlements.watermarkFree) return 0 to 0
+        if (Entitlements.watermarkFree) return 0 to 0
         fun band(spare: Int): Int {
             val b = min(spare / 2, BAND_PX) and 0xF.inv()
             return if (b < 32) 0 else b
         }
-        val spareW = canvasW - w
-        val spareH = canvasH - h
+        // UDP (Android TV / tvOS) alıcısında tuval bilinmez: 16:9 bir ekran varsay
+        val cw = if (canvasW > 0) canvasW else if (w >= h) w else h * 16 / 9
+        val ch = if (canvasH > 0) canvasH else if (w >= h) w * 9 / 16 else h
+        val spareW = cw - w
+        val spareH = ch - h
         return if (spareW > spareH) band(spareW) to 0 else 0 to band(spareH)
     }
 
@@ -332,6 +345,7 @@ class MirrorService : Service() {
         const val EXTRA_DATA = "data"
         const val EXTRA_MODE = "mode"
         const val EXTRA_HOST = "host"
+        const val EXTRA_NAME = "name"
         const val EXTRA_PORT = "port"
         const val EXTRA_TARGET = "target"
         const val EXTRA_LATENCY_MS = "latencyMs"
@@ -345,7 +359,7 @@ class MirrorService : Service() {
         const val MODE_AIRPLAY = "airplay"
         private const val CHANNEL_ID = "mirror"
         private const val NOTIF_ID = 1
-        private const val MAX_SIDE = 1280 // UDP modunda uzun kenar; 720p sınıfı => düşük gecikme
+        private const val MAX_SIDE = 1920 // UDP modunda uzun kenar (Android TV/tvOS alıcıları 1080p çözer)
         private const val BAND_PX = 64 // filigran bantlarının en çok kalınlığı
 
         @Volatile

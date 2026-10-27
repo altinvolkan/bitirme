@@ -46,6 +46,8 @@
     <string name="tip1">Phone and Apple TV must be on the same Wi-Fi. A 5 GHz network works better.</string>
     <string name="tip2">On Apple TV, set Settings > AirPlay and HomeKit > Allow Access to “Anyone on the Same Network”.</string>
     <string name="tip3">Apple TV may be asleep; wake it with the remote.</string>
+    <string name="tip4">On Android TV, install the free “iMirror TV” app on the TV and open it.</string>
+    <string name="subtitle_androidtv">Android TV</string>
     <string name="nodevice_ip_label">Or type the IP address</string>
     <string name="nodevice_connect">Connect</string>
     <string name="nodevice_retry">Search again</string>

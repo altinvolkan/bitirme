@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
         } else {
             svc.putExtra(MirrorService.EXTRA_MODE, MirrorService.MODE_UDP)
                 .putExtra(MirrorService.EXTRA_HOST, dev.ip)
+                .putExtra(MirrorService.EXTRA_NAME, dev.name)
                 .putExtra(MirrorService.EXTRA_PORT, dev.port)
         }
         MirrorEvents.reset()
@@ -130,8 +131,12 @@ class MainActivity : ComponentActivity() {
 
         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
 
-        udpDiscovery = TvDiscovery(this) { name, host, port ->
-            if (host != null) addDevice(Device(Kind.UDP, name, getString(R.string.subtitle_own), host, port))
+        udpDiscovery = TvDiscovery(this) { name, host, port, platform ->
+            if (host != null) {
+                val sub = if (platform == "androidtv") getString(R.string.subtitle_androidtv)
+                else getString(R.string.subtitle_own)
+                addDevice(Device(Kind.UDP, name, sub, host, port))
+            }
         }
         airplayDiscovery = AirPlayDiscovery(this) { t ->
             addDevice(Device(Kind.AIRPLAY, t.name, subtitleFor(t.txt), t.ip, t.port, t))
@@ -308,7 +313,7 @@ class MainActivity : ComponentActivity() {
         }
         if (MirrorService.running) return syncWithService()
         pending = d
-        val needAudio = d.kind == Kind.AIRPLAY && prefs.audio &&
+        val needAudio = prefs.audio &&
             checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
         if (needAudio) audioPermission.launch(Manifest.permission.RECORD_AUDIO) else requestCapture()
     }

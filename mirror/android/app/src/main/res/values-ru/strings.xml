@@ -45,6 +45,8 @@
     <string name="tip1">Телефон и Apple TV должны быть в одной сети Wi-Fi. Сеть 5 ГГц работает лучше.</string>
     <string name="tip2">На Apple TV выберите Настройки > AirPlay и HomeKit > Разрешить доступ: «Все в одной сети».</string>
     <string name="tip3">Apple TV может быть в режиме сна — разбудите его пультом.</string>
+    <string name="tip4">На Android TV установите бесплатное приложение «iMirror TV» и откройте его.</string>
+    <string name="subtitle_androidtv">Android TV</string>
     <string name="nodevice_ip_label">Или введите IP-адрес</string>
     <string name="nodevice_connect">Подключить</string>
     <string name="nodevice_retry">Искать снова</string>

@@ -45,6 +45,8 @@
     <string name="tip1">Le téléphone et l’Apple TV doivent être sur le même Wi-Fi. Un réseau 5 GHz fonctionne mieux.</string>
     <string name="tip2">Sur l’Apple TV, règle Réglages > AirPlay et HomeKit > Autoriser l’accès sur « Tout le monde sur le même réseau ».</string>
     <string name="tip3">L’Apple TV est peut-être en veille ; réveille-le avec la télécommande.</string>
+    <string name="tip4">Sur Android TV, installe l’appli gratuite « iMirror TV » et ouvre-la.</string>
+    <string name="subtitle_androidtv">Android TV</string>
     <string name="nodevice_ip_label">Ou saisis l’adresse IP</string>
     <string name="nodevice_connect">Connecter</string>
     <string name="nodevice_retry">Rechercher à nouveau</string>

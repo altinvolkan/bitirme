@@ -45,6 +45,8 @@
     <string name="tip1">Telefon ve Apple TV aynı Wi-Fi’a bağlı olmalı. 5 GHz ağ daha iyi çalışır.</string>
     <string name="tip2">Apple TV’de Ayarlar > AirPlay ve HomeKit > Erişime İzin Ver değeri “Aynı Ağdaki Herkes” olsun.</string>
     <string name="tip3">Apple TV uyku modunda olabilir; uzaktan kumandayla uyandır.</string>
+    <string name="tip4">Android TV’de TV’ye ücretsiz “iMirror TV” uygulamasını kur ve aç.</string>
+    <string name="subtitle_androidtv">Android TV</string>
     <string name="nodevice_ip_label">Ya da IP adresini yaz</string>
     <string name="nodevice_connect">Bağlan</string>
     <string name="nodevice_retry">Tekrar ara</string>

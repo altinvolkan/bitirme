@@ -45,6 +45,8 @@
     <string name="tip1">Telefono e Apple TV devono essere sulla stessa rete Wi-Fi. Una rete a 5 GHz funziona meglio.</string>
     <string name="tip2">Su Apple TV imposta Impostazioni > AirPlay e HomeKit > Consenti accesso su “Chiunque sulla stessa rete”.</string>
     <string name="tip3">L’Apple TV potrebbe essere in stop; riattivalo con il telecomando.</string>
+    <string name="tip4">Su Android TV installa l’app gratuita “iMirror TV” e aprila.</string>
+    <string name="subtitle_androidtv">Android TV</string>
     <string name="nodevice_ip_label">Oppure scrivi l’indirizzo IP</string>
     <string name="nodevice_connect">Connetti</string>
     <string name="nodevice_retry">Cerca di nuovo</string>

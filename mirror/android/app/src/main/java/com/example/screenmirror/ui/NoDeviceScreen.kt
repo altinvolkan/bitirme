@@ -46,6 +46,7 @@ class NoDeviceScreen(a: MainActivity) : Screen(a) {
             str(R.string.tip1),
             str(R.string.tip2),
             str(R.string.tip3),
+            str(R.string.tip4),
         ).forEachIndexed { i, s ->
             if (i > 0) tips.add(ctx.divider(), h = 1)
             val r = ctx.row { setPadding(0, dp(14), 0, dp(14)) }
