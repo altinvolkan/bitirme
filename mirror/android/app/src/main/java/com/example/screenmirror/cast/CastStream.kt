@@ -46,6 +46,22 @@ class CastStream(
     @Volatile var lastAckedFrame = -1
         private set
 
+    /** Alıcının RR raporundan hesaplanan gidiş-dönüş süresi (ms); henüz yoksa -1. */
+    @Volatile var rttMs = -1
+        private set
+
+    /** Alıcının son bildirdiği oynatma gecikmesi hedefi (ms; Cast geri bildiriminden). */
+    @Volatile var receiverTargetDelayMs = -1
+        private set
+
+    private val srSentAt = HashMap<Int, Long>() // SR NTP ortası (32 bit) -> gönderim anı (nanoTime)
+
+    @get:Synchronized val framesTotal: Int get() = frameId
+    @get:Synchronized val bytesTotal: Long get() = octetCount
+
+    /** Gönderilmiş ama alıcının henüz onaylamadığı kare sayısı (alıcı tarafı tamponlanmasının göstergesi). */
+    @get:Synchronized val unackedFrames: Int get() = frameId - 1 - lastAckedFrame
+
     /** Alıcı gerçekten bir şey geri bildirdi mi (bağlantı canlı mı). */
     @Volatile var feedbackReceived = false
         private set
@@ -135,6 +151,8 @@ class CastStream(
         val wallMs = System.currentTimeMillis()
         val ntpSec = (wallMs / 1000) + NTP_UNIX_OFFSET
         val ntpFrac = ((wallMs % 1000) * 0x1_0000_0000L / 1000)
+        srSentAt[(ntpSec.toInt() shl 16) or (ntpFrac.toInt() ushr 16)] = nowNs
+        if (srSentAt.size > 64) srSentAt.remove(srSentAt.keys.first())
         val p = ByteArray(28)
         var i = 0
         p[i++] = 0x80.toByte(); p[i++] = 200.toByte() // SR
@@ -171,10 +189,21 @@ class CastStream(
                     }
                 } else if (pt == 201 || pt == 207) { // RR / XR: alıcı canlı
                     feedbackReceived = true
+                    if (pt == 201 && fmt >= 1 && total >= 32) parseReportBlock(d, pos + 8)
                 }
             }
             pos += total
         }
+    }
+
+    /** RR rapor bloğu: son SR'ın NTP ortası + alıcıdaki bekleme süresi (DLSR) ile gidiş-dönüş süresi. */
+    private fun parseReportBlock(d: ByteArray, at: Int) {
+        if (readInt(d, at) != ssrc) return
+        val lastSr = readInt(d, at + 16)
+        val dlsr = readInt(d, at + 20).toLong() and 0xFFFFFFFFL // 1/65536 sn
+        val sentAt = srSentAt[lastSr] ?: return
+        val ms = (System.nanoTime() - sentAt) / 1_000_000L - dlsr * 1000L / 65536L
+        rttMs = ms.coerceAtLeast(1).toInt()
     }
 
     private fun parseCastFeedback(d: ByteArray, start: Int, end: Int) {
@@ -182,6 +211,7 @@ class CastStream(
         feedbackReceived = true
         val ack8 = d[start].toInt() and 0xFF
         val loss = d[start + 1].toInt() and 0xFF
+        receiverTargetDelayMs = ((d[start + 2].toInt() and 0xFF) shl 8) or (d[start + 3].toInt() and 0xFF)
         var p = start + 4
         // ACK: bu karede ve öncesindekileri sakla-listeden at
         val ackFull = expand8(ack8)

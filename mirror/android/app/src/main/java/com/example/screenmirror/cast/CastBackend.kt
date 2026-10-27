@@ -204,6 +204,7 @@ class CastBackend(
             }
         }
         startRtcpThreads(sock)
+        startStats()
 
         // tuval: alıcının kabul ettiği en büyük çözünürlük (yoksa 1920x1080)
         var cw = maxW
@@ -223,8 +224,18 @@ class CastBackend(
 
     private fun onOpus(a: CastStream, pkt: ByteArray, ptsUs: Long) {
         val now = System.nanoTime()
-        if (audioBaseRtp < 0) audioBaseRtp = (now - t0Ns) * OpusEncoder.SAMPLE_RATE / 1_000_000_000L
-        val rtp = audioBaseRtp + ptsUs * OpusEncoder.SAMPLE_RATE / 1_000_000L
+        val nowRtp = (now - t0Ns) * OpusEncoder.SAMPLE_RATE / 1_000_000_000L
+        if (audioBaseRtp < 0) audioBaseRtp = nowRtp - ptsUs * OpusEncoder.SAMPLE_RATE / 1_000_000L
+        var rtp = audioBaseRtp + ptsUs * OpusEncoder.SAMPLE_RATE / 1_000_000L
+        // Ses yakalama sessizlikte/duraklamada örnek üretmeyebilir; zaman damgası yalnızca verilen örnekleri sayarsa
+        // ses gerçek zamanın gerisine düşer ve alıcı görüntüyü ses saatine göre bekletir (saniyelerce gecikme).
+        // Geri kalma 100 ms'yi aşarsa zaman damgasını gerçek zamana çek.
+        val lag = nowRtp - rtp
+        if (lag > OpusEncoder.SAMPLE_RATE / 10) {
+            audioBaseRtp += lag - OpusEncoder.SAMPLE_RATE / 50 // ~20 ms kodlama payı bırak
+            rtp = audioBaseRtp + ptsUs * OpusEncoder.SAMPLE_RATE / 1_000_000L
+            Log.d(TAG, "ses zaman damgası gerçek zamana çekildi (geri kalma ${lag * 1000 / OpusEncoder.SAMPLE_RATE} ms)")
+        }
         val refNs = t0Ns + rtp * 1_000_000_000L / OpusEncoder.SAMPLE_RATE
         a.sendFrame(pkt, true, rtp, refNs)
     }
@@ -351,6 +362,32 @@ class CastBackend(
                 }
                 video?.sendSenderReport()
                 audio?.sendSenderReport()
+            }
+        }
+    }
+
+    /** Her 2 sn'de günlüğe: gecikmenin nerede biriktiğini (ağ mı, alıcı mı) anlamak için. */
+    private fun startStats() {
+        thread(name = "cast-stats", isDaemon = true) {
+            var lastFrames = 0
+            var lastBytes = 0L
+            while (!stopped) {
+                try {
+                    Thread.sleep(2000)
+                } catch (_: InterruptedException) {
+                    return@thread
+                }
+                val v = video ?: continue
+                val frames = v.framesTotal
+                val bytes = v.bytesTotal
+                Log.i(
+                    TAG,
+                    "istatistik: ${(frames - lastFrames) / 2} kare/sn, ${(bytes - lastBytes) * 8 / 2000} kbps, " +
+                        "onaysız=${v.unackedFrames} kare, rtt=${v.rttMs} ms, alıcı hedef gecikme=${v.receiverTargetDelayMs} ms, " +
+                        "ses=${if (audio != null) "var" else "yok"}",
+                )
+                lastFrames = frames
+                lastBytes = bytes
             }
         }
     }
