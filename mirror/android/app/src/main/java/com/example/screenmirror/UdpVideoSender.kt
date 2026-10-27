@@ -21,11 +21,6 @@ class UdpVideoSender(
     private val packet = DatagramPacket(buf, buf.size)
     private var frameId = 0
 
-    // Ses ayrı iş parçacığından gelir; video tamponuyla karışmasın diye ayrı tampon
-    private val audioBuf = ByteArray(Protocol.AUDIO_HEADER + Protocol.AUDIO_MAX_PAYLOAD)
-    private val audioPacket = DatagramPacket(audioBuf, audioBuf.size)
-    private var audioSeq = 0
-
     init {
         thread(name = "udp-rx", isDaemon = true) {
             val rx = DatagramPacket(ByteArray(64), 64)
@@ -65,31 +60,6 @@ class UdpVideoSender(
             } catch (_: IOException) {
                 // alıcı yoksa sessizce düş
             }
-        }
-    }
-
-    /** Android TV alıcısı için sistem sesi; alıcı çalmıyorsa (ör. tvOS) yok sayılır. */
-    override val wantsAudio: Boolean get() = true
-
-    /** Sadece ses yakalama iş parçacığından çağrılır. */
-    override fun sendAudio(pcm: ByteArray, size: Int) {
-        var off = 0
-        while (off < size) {
-            val len = minOf(Protocol.AUDIO_MAX_PAYLOAD, size - off)
-            val seq = audioSeq++
-            audioBuf[0] = Protocol.TYPE_AUDIO
-            audioBuf[1] = 0
-            audioBuf[2] = (seq ushr 24).toByte()
-            audioBuf[3] = (seq ushr 16).toByte()
-            audioBuf[4] = (seq ushr 8).toByte()
-            audioBuf[5] = seq.toByte()
-            System.arraycopy(pcm, off, audioBuf, Protocol.AUDIO_HEADER, len)
-            audioPacket.setData(audioBuf, 0, Protocol.AUDIO_HEADER + len)
-            try {
-                socket.send(audioPacket)
-            } catch (_: IOException) {
-            }
-            off += len
         }
     }
 

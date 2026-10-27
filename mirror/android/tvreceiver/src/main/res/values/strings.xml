@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name" translatable="false">iMirror TV</string>
-    <string name="tv_waiting">Waiting for your phone…</string>
-    <string name="tv_hint">Open iMirror on your phone (same Wi-Fi) and choose this TV.</string>
-    <string name="tv_address">Address: %1$s</string>
-    <string name="tv_no_network">No network connection</string>
-    <string name="tv_port_error">Couldn’t open port %1$d</string>
-</resources>

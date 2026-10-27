@@ -11,8 +11,7 @@ import java.net.Inet4Address
 @Suppress("DEPRECATION")
 class TvDiscovery(
     context: Context,
-    /** [platform]: alıcının duyurduğu "platform" özelliği ("androidtv" gibi); yoksa null. */
-    private val onFound: (name: String, host: String?, port: Int, platform: String?) -> Unit,
+    private val onFound: (name: String, host: String?, port: Int) -> Unit,
 ) {
     private val nsd = context.getSystemService(Context.NSD_SERVICE) as NsdManager
     private val main = Handler(Looper.getMainLooper())
@@ -48,8 +47,7 @@ class TvDiscovery(
             override fun onServiceResolved(info: NsdServiceInfo) {
                 // IPv6 link-local adresler gönderim için sorunlu; sadece IPv4 kabul et
                 val v4 = (info.host as? Inet4Address)?.hostAddress
-                val platform = info.attributes["platform"]?.toString(Charsets.UTF_8)
-                main.post { onFound(info.serviceName, v4, info.port, platform) }
+                main.post { onFound(info.serviceName, v4, info.port) }
             }
         })
     }

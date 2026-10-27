@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import com.example.screenmirror.cast.CastDiscovery
 import com.example.screenmirror.monetization.AdsManager
 import com.example.screenmirror.monetization.BillingManager
 import com.example.screenmirror.monetization.Entitlements
@@ -60,6 +61,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var udpDiscovery: TvDiscovery
     private lateinit var airplayDiscovery: AirPlayDiscovery
+    private lateinit var castDiscovery: CastDiscovery
     private var discovering = false
     private val emptyCheck = Runnable {
         if (devices.isEmpty() && current is HomeScreen && !MirrorService.running) show(NoDeviceScreen(this))
@@ -84,6 +86,9 @@ class MainActivity : ComponentActivity() {
         if (dev.kind == Kind.AIRPLAY) {
             svc.putExtra(MirrorService.EXTRA_MODE, MirrorService.MODE_AIRPLAY)
                 .putExtra(MirrorService.EXTRA_TARGET, dev.airplay)
+        } else if (dev.kind == Kind.CAST) {
+            svc.putExtra(MirrorService.EXTRA_MODE, MirrorService.MODE_CAST)
+                .putExtra(MirrorService.EXTRA_CAST_TARGET, dev.cast)
         } else {
             svc.putExtra(MirrorService.EXTRA_MODE, MirrorService.MODE_UDP)
                 .putExtra(MirrorService.EXTRA_HOST, dev.ip)
@@ -92,7 +97,7 @@ class MainActivity : ComponentActivity() {
         }
         MirrorEvents.reset()
         startForegroundService(svc)
-        if (dev.kind == Kind.AIRPLAY) {
+        if (dev.kind != Kind.UDP) {
             showFlow(ConnectingScreen(this, 0))
         } else {
             showFlow(LiveScreen(this))
@@ -131,12 +136,13 @@ class MainActivity : ComponentActivity() {
 
         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
 
-        udpDiscovery = TvDiscovery(this) { name, host, port, platform ->
-            if (host != null) {
-                val sub = if (platform == "androidtv") getString(R.string.subtitle_androidtv)
-                else getString(R.string.subtitle_own)
-                addDevice(Device(Kind.UDP, name, sub, host, port))
-            }
+        udpDiscovery = TvDiscovery(this) { name, host, port ->
+            if (host != null) addDevice(Device(Kind.UDP, name, getString(R.string.subtitle_own), host, port))
+        }
+        castDiscovery = CastDiscovery(this) { t ->
+            val cast = getString(R.string.subtitle_cast)
+            val sub = if (t.model.isEmpty()) cast else "${t.model} · $cast"
+            addDevice(Device(Kind.CAST, t.name, sub, t.ip, t.port, cast = t))
         }
         airplayDiscovery = AirPlayDiscovery(this) { t ->
             addDevice(Device(Kind.AIRPLAY, t.name, subtitleFor(t.txt), t.ip, t.port, t))
@@ -261,6 +267,7 @@ class MainActivity : ComponentActivity() {
         if (discovering) return
         discovering = true
         udpDiscovery.start()
+        castDiscovery.start()
         if (AirPlayBackendLoader.available) airplayDiscovery.start()
         scheduleEmptyCheck()
     }
@@ -269,6 +276,7 @@ class MainActivity : ComponentActivity() {
         if (!discovering) return
         discovering = false
         udpDiscovery.stop()
+        castDiscovery.stop()
         if (AirPlayBackendLoader.available) airplayDiscovery.stop()
         main.removeCallbacks(emptyCheck)
     }
@@ -319,7 +327,7 @@ class MainActivity : ComponentActivity() {
         }
         if (MirrorService.running) return syncWithService()
         pending = d
-        val needAudio = prefs.audio &&
+        val needAudio = prefs.audio && d.kind != Kind.UDP &&
             checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
         if (needAudio) audioPermission.launch(Manifest.permission.RECORD_AUDIO) else requestCapture()
     }

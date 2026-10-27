@@ -13,7 +13,7 @@ Kurallar: başlık ≤ 30, kısa açıklama ≤ 80, uzun açıklama ≤ 4000 kar
 Mirror your Android screen to Apple TV over your home Wi-Fi.
 
 • Direct mirroring: no extra app is needed on the Apple TV.
-• Also works with Android TV through the free iMirror TV receiver app.
+• Also works with Android TV, Chromecast and Google TV (Google Cast) with no extra app on the TV.
 • Low latency, with a latency buffer you can adjust.
 • System audio is sent to the TV too.
 • Rotate your phone and the picture adapts automatically.
@@ -36,7 +36,7 @@ iMirror is an independent app and is not affiliated with or endorsed by Apple In
 Android ekranını ev Wi-Fi ağın üzerinden Apple TV'ye yansıt.
 
 • Doğrudan yansıtma: Apple TV'ye ek bir uygulama kurmak gerekmez.
-• Android TV'de ücretsiz iMirror TV alıcı uygulamasıyla da çalışır.
+• Android TV, Chromecast ve Google TV (Google Cast) ile de çalışır, TV'ye ek uygulama gerekmez.
 • Düşük gecikme; gecikme payını ayarlayabilirsin.
 • Sistem sesi de TV'ye gider.
 • Telefonu çevirince görüntü otomatik uyum sağlar.
@@ -59,7 +59,7 @@ iMirror bağımsız bir uygulamadır; Apple Inc. ile bağlantılı değildir ve 
 Spiegle deinen Android-Bildschirm über dein WLAN auf Apple TV.
 
 • Direkte Spiegelung: Auf dem Apple TV ist keine zusätzliche App nötig.
-• Funktioniert auch mit Android TV über die kostenlose Empfänger-App iMirror TV.
+• Funktioniert auch mit Android TV, Chromecast und Google TV (Google Cast), ohne zusätzliche App am Fernseher.
 • Geringe Latenz, mit einstellbarem Latenzpuffer.
 • Der Systemton wird ebenfalls an den Fernseher gesendet.
 • Beim Drehen des Handys passt sich das Bild automatisch an.
@@ -82,7 +82,7 @@ iMirror ist eine unabhängige App und steht in keiner Verbindung zu Apple Inc. A
 Duplica la pantalla de tu Android en el Apple TV a través de tu Wi-Fi doméstico.
 
 • Duplicado directo: no hace falta ninguna app extra en el Apple TV.
-• También funciona con Android TV mediante la app receptora gratuita iMirror TV.
+• También funciona con Android TV, Chromecast y Google TV (Google Cast), sin apps extra en la TV.
 • Baja latencia, con un margen de latencia ajustable.
 • El audio del sistema también se envía a la TV.
 • Gira el teléfono y la imagen se adapta automáticamente.
@@ -105,7 +105,7 @@ iMirror es una app independiente, sin relación con Apple Inc. ni respaldada por
 Recopie l'écran de ton Android sur l'Apple TV via ton Wi-Fi à la maison.
 
 • Recopie directe : aucune appli supplémentaire n'est nécessaire sur l'Apple TV.
-• Fonctionne aussi avec Android TV grâce à l'appli réceptrice gratuite iMirror TV.
+• Fonctionne aussi avec Android TV, Chromecast et Google TV (Google Cast), sans appli supplémentaire sur la télé.
 • Faible latence, avec une marge de latence réglable.
 • Le son du système est aussi envoyé à la télé.
 • Fais pivoter le téléphone et l'image s'adapte automatiquement.
@@ -128,7 +128,7 @@ iMirror est une appli indépendante, sans lien avec Apple Inc. ni approuvée par
 Trasmetti lo schermo del tuo Android sull'Apple TV tramite il Wi-Fi di casa.
 
 • Mirroring diretto: non serve nessuna app aggiuntiva sull'Apple TV.
-• Funziona anche con Android TV tramite l'app ricevitore gratuita iMirror TV.
+• Funziona anche con Android TV, Chromecast e Google TV (Google Cast), senza app aggiuntive sulla TV.
 • Bassa latenza, con un margine di latenza regolabile.
 • Anche l'audio di sistema viene inviato alla TV.
 • Ruota il telefono e l'immagine si adatta automaticamente.
@@ -151,7 +151,7 @@ iMirror è un'app indipendente, non affiliata né approvata da Apple Inc. Apple 
 Espelhe a tela do seu Android na Apple TV pelo Wi-Fi da sua casa.
 
 • Espelhamento direto: não é preciso nenhum app extra na Apple TV.
-• Também funciona com Android TV pelo app receptor gratuito iMirror TV.
+• Também funciona com Android TV, Chromecast e Google TV (Google Cast), sem app extra na TV.
 • Baixa latência, com margem de latência ajustável.
 • O áudio do sistema também é enviado para a TV.
 • Gire o celular e a imagem se adapta automaticamente.
@@ -174,7 +174,7 @@ O iMirror é um app independente, sem afiliação com a Apple Inc. nem aprovaç�
 Транслируйте экран Android на Apple TV через домашнюю сеть Wi-Fi.
 
 • Прямая трансляция: на Apple TV не нужно устанавливать дополнительное приложение.
-• Работает и с Android TV через бесплатное приложение-приёмник iMirror TV.
+• Работает и с Android TV, Chromecast и Google TV (Google Cast) — дополнительное приложение на телевизоре не нужно.
 • Малая задержка, запас задержки настраивается.
 • Системный звук тоже передаётся на телевизор.
 • Поверните телефон — изображение подстроится автоматически.

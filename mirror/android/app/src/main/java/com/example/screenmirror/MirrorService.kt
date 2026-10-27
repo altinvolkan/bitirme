@@ -21,6 +21,8 @@ import android.view.Display
 import android.view.Surface
 import com.example.screenmirror.monetization.Entitlements
 import androidx.core.content.IntentCompat
+import com.example.screenmirror.cast.CastBackend
+import com.example.screenmirror.cast.CastTarget
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
@@ -77,6 +79,10 @@ class MirrorService : Service() {
         try {
             val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             val proj = mpm.getMediaProjection(resultCode, data)
+            if (proj == null) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
             // Android 14+: createVirtualDisplay'den önce callback kaydı zorunlu
             proj.registerCallback(object : MediaProjection.Callback() {
                 override fun onStop() {
@@ -102,6 +108,7 @@ class MirrorService : Service() {
             targetFps = intent.getIntExtra(EXTRA_FPS, DEFAULT_FPS)
             val ok = when (intent.getStringExtra(EXTRA_MODE)) {
                 MODE_AIRPLAY -> startAirPlay(proj, intent)
+                MODE_CAST -> startCast(proj, intent)
                 else -> startUdp(proj, intent)
             }
             if (!ok) {
@@ -140,15 +147,6 @@ class MirrorService : Service() {
         encoder = enc[0]
         enc[0]!!.start()
         watchRotation()
-
-        // Android TV alıcısı sesi de çalar (tvOS alıcısı ses paketlerini yok sayar)
-        if (hasAudioPermission()) {
-            val capturer = AudioCapturer(proj, snd)
-            if (capturer.start()) {
-                capturer.muted = audioMuted
-                audio = capturer
-            }
-        }
         return true
     }
 
@@ -157,8 +155,32 @@ class MirrorService : Service() {
     private fun startAirPlay(proj: MediaProjection, intent: Intent): Boolean {
         val target = IntentCompat.getSerializableExtra(intent, EXTRA_TARGET, AirPlayTarget::class.java)
             ?: return false
+        return startBackend(proj, intent, target.name, MODE_AIRPLAY) { cb ->
+            AirPlayBackendLoader.create(target, AirPlayCredentials.load(this, target.deviceId), cb)
+        }
+    }
+
+    // --- Google Cast (Android TV / Chromecast yerleşik alıcısı) ---
+
+    private fun startCast(proj: MediaProjection, intent: Intent): Boolean {
+        val target = IntentCompat.getSerializableExtra(intent, EXTRA_CAST_TARGET, CastTarget::class.java)
+            ?: return false
+        targetFps = minOf(targetFps, 30) // Cast alıcıları 30 fps'ye kadar bekler
+        return startBackend(proj, intent, target.name, MODE_CAST) { cb ->
+            CastBackend(target, cb, bitrateBps, targetFps)
+        }
+    }
+
+    /** AirPlay ve Cast arka uçlarının ortak başlatması (alıcı tuvali gelince encoder + ses başlar). */
+    private fun startBackend(
+        proj: MediaProjection,
+        intent: Intent,
+        name: String,
+        mode: String,
+        create: (MirrorBackend.Callbacks) -> MirrorBackend?,
+    ): Boolean {
         LiveInfo.reset(
-            target.name, MODE_AIRPLAY, bitrateBps / 1_000_000,
+            name, mode, bitrateBps / 1_000_000,
             intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS), targetFps,
         )
 
@@ -186,7 +208,7 @@ class MirrorService : Service() {
             }
         }
 
-        val b = AirPlayBackendLoader.create(target, AirPlayCredentials.load(this, target.deviceId), cb)
+        val b = create(cb)
         if (b == null) {
             MirrorEvents.status("error", getString(R.string.svc_no_lib))
             return false
@@ -195,7 +217,7 @@ class MirrorService : Service() {
         sink = b.sink
         b.setAudioEnabled(hasAudioPermission() && intent.getBooleanExtra(EXTRA_AUDIO, true))
         b.setLatencyMs(intent.getIntExtra(EXTRA_LATENCY_MS, DEFAULT_LATENCY_MS))
-        thread(name = "airplay-session", isDaemon = true) { b.run() }
+        thread(name = "mirror-session", isDaemon = true) { b.run() }
         return true
     }
 
@@ -216,7 +238,7 @@ class MirrorService : Service() {
 
         val s = sink!!
         if (s.wantsAudio) {
-            val capturer = AudioCapturer(proj, s)
+            val capturer = AudioCapturer(proj, s, s.audioSampleRate)
             if (capturer.start()) {
                 capturer.muted = audioMuted
                 audio = capturer
@@ -348,6 +370,7 @@ class MirrorService : Service() {
         const val EXTRA_NAME = "name"
         const val EXTRA_PORT = "port"
         const val EXTRA_TARGET = "target"
+        const val EXTRA_CAST_TARGET = "castTarget"
         const val EXTRA_LATENCY_MS = "latencyMs"
         const val EXTRA_BITRATE_MBPS = "bitrateMbps"
         const val EXTRA_FPS = "fps"
@@ -357,6 +380,7 @@ class MirrorService : Service() {
         const val DEFAULT_LATENCY_MS = 250
         const val MODE_UDP = "udp"
         const val MODE_AIRPLAY = "airplay"
+        const val MODE_CAST = "cast"
         private const val CHANNEL_ID = "mirror"
         private const val NOTIF_ID = 1
         private const val MAX_SIDE = 1920 // UDP modunda uzun kenar (Android TV/tvOS alıcıları 1080p çözer)

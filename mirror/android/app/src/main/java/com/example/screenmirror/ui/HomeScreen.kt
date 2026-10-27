@@ -109,7 +109,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         if (devices.isEmpty()) list.add(searchingCard(), top = 10)
 
         latencyHolder.removeAllViews()
-        if (a.selected?.kind == Kind.AIRPLAY) latencyHolder.addView(latencyCard(), FrameLayout.LayoutParams(MATCH, WRAP))
+        if (a.selected?.kind == Kind.AIRPLAY || a.selected?.kind == Kind.CAST) latencyHolder.addView(latencyCard(), FrameLayout.LayoutParams(MATCH, WRAP))
 
         val canStart = a.selected != null
         cta.alpha = if (canStart) 1f else 0.4f

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="tv_waiting">Ожидание телефона…</string>
-    <string name="tv_hint">Откройте iMirror на телефоне (та же сеть Wi-Fi) и выберите этот телевизор.</string>
-    <string name="tv_address">Адрес: %1$s</string>
-    <string name="tv_no_network">Нет подключения к сети</string>
-    <string name="tv_port_error">Не удалось открыть порт %1$d</string>
-</resources>

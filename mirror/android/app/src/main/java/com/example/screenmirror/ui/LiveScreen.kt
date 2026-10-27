@@ -76,7 +76,7 @@ class LiveScreen(a: MainActivity) : Screen(a) {
         grid.add(r2, top = 12)
         col.add(grid, top = 12)
 
-        col.add(audioCard(), top = 12)
+        if (LiveInfo.mode != MirrorService.MODE_UDP) col.add(audioCard(), top = 12)
         if (!Entitlements.premium) col.add(premiumCard(), top = 12)
         col.add(
             ctx.label(str(R.string.live_rotate_hint), 13f, C.DIM, 400).apply { gravity = Gravity.CENTER },

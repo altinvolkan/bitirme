@@ -10,6 +10,9 @@ interface FrameSink : Closeable {
     /** Sistem sesini (S16LE, 44.1 kHz, stereo) kabul ediyor mu? */
     val wantsAudio: Boolean get() = false
 
+    /** Ses yakalama örnekleme hızı (AirPlay 44100, Cast/Opus 48000). */
+    val audioSampleRate: Int get() = 44100
+
     /** PCM parçası; sadece [wantsAudio] true ise çağrılır. */
     fun sendAudio(pcm: ByteArray, size: Int) {}
 }

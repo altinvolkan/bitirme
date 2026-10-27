@@ -1,3 +1,8 @@
 keystore.properties
 *.jks
 *.keystore
+tools/cast-test/build-src/
+tools/cast-test/out.jar
+tools/cast-test/json.jar
+tools/cast-test/*.pem
+tools/cast-test/sent.bin

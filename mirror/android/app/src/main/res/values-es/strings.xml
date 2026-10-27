@@ -45,8 +45,8 @@
     <string name="tip1">El teléfono y el Apple TV deben estar en la misma red Wi-Fi. Una red de 5 GHz funciona mejor.</string>
     <string name="tip2">En el Apple TV, ajusta Ajustes > AirPlay y HomeKit > Permitir acceso en “Cualquiera en la misma red”.</string>
     <string name="tip3">Puede que el Apple TV esté en reposo; actívalo con el mando.</string>
-    <string name="tip4">En Android TV, instala la app gratuita “iMirror TV” y ábrela.</string>
-    <string name="subtitle_androidtv">Android TV</string>
+    <string name="tip4">Android TV, Chromecast y Google TV aparecen como “Google Cast”. La TV debe estar encendida y en la misma red Wi-Fi.</string>
+    <string name="subtitle_cast">Google Cast</string>
     <string name="nodevice_ip_label">O escribe la dirección IP</string>
     <string name="nodevice_connect">Conectar</string>
     <string name="nodevice_retry">Buscar de nuevo</string>

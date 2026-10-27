@@ -15,4 +15,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "ScreenMirror"
 include(":app")
-include(":tvreceiver")

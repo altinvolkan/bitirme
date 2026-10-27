@@ -4,7 +4,7 @@ import com.example.screenmirror.R
 import android.content.Context
 import com.example.screenmirror.AirPlayTarget
 
-enum class Kind { AIRPLAY, UDP }
+enum class Kind { AIRPLAY, UDP, CAST }
 
 /** Listede gösterilen bir hedef ekran. */
 data class Device(
@@ -14,6 +14,7 @@ data class Device(
     val ip: String,
     val port: Int,
     val airplay: AirPlayTarget? = null,
+    val cast: com.example.screenmirror.cast.CastTarget? = null,
 ) {
     val key: String get() = "${kind.name}:$ip"
 }

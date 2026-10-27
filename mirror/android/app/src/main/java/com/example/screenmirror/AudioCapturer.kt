@@ -21,6 +21,8 @@ import kotlin.concurrent.thread
 class AudioCapturer(
     private val projection: MediaProjection,
     private val sink: FrameSink,
+    /** Yakalama örnekleme hızı: AirPlay 44100, Cast (Opus) 48000. */
+    private val sampleRate: Int = SAMPLE_RATE,
 ) {
     private var record: AudioRecord? = null
     @Volatile private var running = false
@@ -37,18 +39,18 @@ class AudioCapturer(
             .build()
         val format = AudioFormat.Builder()
             .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-            .setSampleRate(SAMPLE_RATE)
+            .setSampleRate(sampleRate)
             .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
             .build()
         val minBuf = AudioRecord.getMinBufferSize(
-            SAMPLE_RATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT,
+            sampleRate, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT,
         )
         val rec = try {
             AudioRecord.Builder()
                 .setAudioFormat(format)
                 .setAudioPlaybackCaptureConfig(config)
                 // 500 ms: telefon meşgulken okuma gecikse bile örnek kaybolmasın (çıtırtı nedeni)
-                .setBufferSizeInBytes(maxOf(minBuf, SAMPLE_RATE * 4 / 2))
+                .setBufferSizeInBytes(maxOf(minBuf, sampleRate * 4 / 2))
                 .build()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -63,7 +65,7 @@ class AudioCapturer(
         rec.startRecording()
         thread(name = "audio-capture", isDaemon = true) {
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-            val buf = ByteArray(CHUNK_BYTES)
+            val buf = ByteArray(sampleRate / 100 * 4) // 10 ms, stereo S16
             var last = SystemClock.elapsedRealtime()
             var gaps = 0
             while (running) {
@@ -95,7 +97,6 @@ class AudioCapturer(
 
     companion object {
         const val SAMPLE_RATE = 44100
-        private const val CHUNK_BYTES = SAMPLE_RATE / 100 * 4 // 10 ms, stereo S16
         private const val GAP_WARN_MS = 40L
         private const val TAG = "ScreenMirrorAudio"
     }
