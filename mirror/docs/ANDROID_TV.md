@@ -27,7 +27,7 @@ uzaktan kumandayla kullanım (şu an tek ekran, düğme yok), 1920x1080 TV ekran
 
 ## Denenmesi gerekenler (henüz denenmedi)
 1. TV uygulaması açılır, ağda görünür ve telefonda listede "Android TV" olarak çıkar mı? (Görünmezse TV ekranındaki
-   `IP:52000` adresini telefonda "IP ile bağlan" ile gir; ama o yol AirPlay varsayar, UDP için ayrıca düzeltilecek.)
+   `IP:52000` adresini (iki nokta üst üste ve port dahil) telefonda "IP ile bağlan" alanına aynen gir.)
 2. Görüntü açılıyor mu, döndürünce toparlanıyor mu, gecikme nasıl?
 3. Ses geliyor mu? Görüntüyle ne kadar kayma var? (Gerekirse ses tamponu `AudioPlayer.kt` içinde ayarlanır.)
 4. Hangi TV'lerde donanım çözücü düşük gecikmeyi (`low-latency` anahtarı) destekliyor?

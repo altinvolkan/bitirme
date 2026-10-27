@@ -287,12 +287,18 @@ class MainActivity : ComponentActivity() {
         goHome()
     }
 
-    fun connectManual(ip: String) {
-        if (!Regex("""\d{1,3}(\.\d{1,3}){3}""").matches(ip)) {
+    /** "192.168.1.50" (AirPlay) veya "192.168.1.50:52000" (iMirror TV / kendi UDP alıcımız). */
+    fun connectManual(input: String) {
+        val m = Regex("""(\d{1,3}(?:\.\d{1,3}){3})(?::(\d{1,5}))?""").matchEntire(input)
+        if (m == null) {
             toast(getString(R.string.toast_bad_ip))
             return
         }
-        val d = if (AirPlayBackendLoader.available) {
+        val ip = m.groupValues[1]
+        val udpPort = m.groupValues[2].toIntOrNull()
+        val d = if (udpPort != null) {
+            Device(Kind.UDP, ip, getString(R.string.subtitle_own), ip, udpPort)
+        } else if (AirPlayBackendLoader.available) {
             Device(Kind.AIRPLAY, ip, getString(R.string.subtitle_airplay), ip, 7000, AirPlayTarget(ip, ip, 7000, ""))
         } else {
             Device(Kind.UDP, ip, getString(R.string.subtitle_own), ip, Protocol.DEFAULT_PORT)
